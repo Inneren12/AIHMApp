@@ -9,4 +9,5 @@ object Paths {
     const val EVENTS = "events.jsonl"
     const val MANIFEST = "manifest.json"
     const val ARTIFACTS = "artifacts"
+    const val TMP = "tmp"
 }

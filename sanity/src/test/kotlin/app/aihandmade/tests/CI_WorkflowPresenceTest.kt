@@ -1,19 +1,29 @@
 package app.aihandmade.tests
 
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.nio.file.Files
-import kotlin.test.assertTrue
+import kotlin.text.RegexOption
 
 class CI_WorkflowPresenceTest {
-  @Test fun workflowExistsAndRunsTests() {
+  @Test
+  fun workflowExistsAndRunsTests() {
     val root = RepoRoot.locate()
     val wf = root.resolve(".github/workflows/android-ci.yml")
     assertTrue(Files.exists(wf), "MISSING: .github/workflows/android-ci.yml")
     val text = Files.readString(wf)
-    // Базовые ожидания: сборка и тесты есть в workflow
-    assertTrue(text.contains("./gradlew build") || text.contains("./gradlew assemble"),
-      "CI workflow lacks build step")
-    assertTrue(text.contains("./gradlew test"),
-      "CI workflow lacks test step")
+
+    val hasBuild = text.contains("./gradlew build") || text.contains("./gradlew assemble") || Regex(
+      "run:\\s*\\|[\\s\\S]*gradlew.*\\b(build|assemble)\\b",
+      setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL),
+    ).containsMatchIn(text)
+
+    val hasTest = text.contains("./gradlew test") || Regex(
+      "run:\\s*\\|[\\s\\S]*gradlew.*\\btest\\b",
+      setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL),
+    ).containsMatchIn(text)
+
+    assertTrue(hasBuild, "workflow missing Gradle build step")
+    assertTrue(hasTest, "workflow missing Gradle test step")
   }
 }

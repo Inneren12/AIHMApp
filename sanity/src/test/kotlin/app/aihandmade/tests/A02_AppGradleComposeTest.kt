@@ -1,18 +1,29 @@
 package app.aihandmade.tests
 
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.nio.file.Files
-import kotlin.test.assertTrue
+import kotlin.text.RegexOption
 
 class A02_AppGradleComposeTest {
-  @Test fun composeAndJvmTargetConfigured() {
+  @Test
+  fun composeAndJvmTargetConfigured() {
     val root = RepoRoot.locate()
     val g = Files.readString(root.resolve("app/build.gradle.kts"))
-    assertTrue(g.contains("buildFeatures { compose = true }"),
-      "MISSING compose buildFeature in :app")
-    assertTrue(g.contains("composeOptions"),
-      "MISSING composeOptions in :app")
-    assertTrue(g.contains("jvmTarget = \"17\""),
-      "MISSING jvmTarget=17 in :app")
+
+    val hasComposeFeature = Regex(
+      """buildFeatures\s*\{\s*[^}]*compose\s*=\s*true""",
+      setOf(RegexOption.DOT_MATCHES_ALL),
+    ).containsMatchIn(g)
+    val hasComposeOptions = Regex(
+      """composeOptions\s*\{\s*[^}]*kotlinCompilerExtensionVersion""",
+      setOf(RegexOption.DOT_MATCHES_ALL),
+    ).containsMatchIn(g)
+    val hasJvmTarget = Regex("""jvmTarget\s*=\s*[\"']17[\"']""")
+      .containsMatchIn(g)
+
+    assertTrue(hasComposeFeature, "MISSING compose buildFeature in :app")
+    assertTrue(hasComposeOptions, "MISSING composeOptions in :app")
+    assertTrue(hasJvmTarget, "MISSING jvmTarget=17 in :app")
   }
 }

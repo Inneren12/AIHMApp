@@ -2,15 +2,17 @@ plugins {
     kotlin("jvm")
 }
 
-java {
-    toolchain.languageVersion.set(JavaLanguageVersion.of(17))
+kotlin {
+    jvmToolchain(17)
 }
 
 dependencies {
-    testImplementation(libs.junit.jupiter.api)
-    testRuntimeOnly(libs.junit.jupiter.engine)
+    testImplementation("org.junit.jupiter:junit-jupiter:5.11.0")
 }
 
 tasks.test {
     useJUnitPlatform()
+    testLogging {
+        events("PASSED", "FAILED", "SKIPPED")
+    }
 }

@@ -1,8 +1,8 @@
 package app.aihandmade.tests
 
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.nio.file.Files
-import kotlin.test.assertTrue
 
 class A09_ImportStepFilesTest {
   @Test fun importStepAndAdapterExist() {

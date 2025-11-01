@@ -1,5 +1,6 @@
 package app.aihandmade.core.pipeline
 
+import app.aihandmade.export.ArtifactStore
 import java.util.logging.Logger
 
 data class RunContext(
@@ -8,5 +9,3 @@ data class RunContext(
     val artifactStore: ArtifactStore,
     val rngSeed: Long
 )
-
-interface ArtifactStore

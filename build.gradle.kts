@@ -1,14 +1,15 @@
 import org.gradle.api.Project
+import org.gradle.api.tasks.testing.Test
 
 plugins {
-    // Reserved for future root plugins.
+    // Root project intentionally has no plugins.
 }
 
 fun configureKotlinToolchain(project: Project, version: Int) {
     project.extensions.findByName("kotlin")?.let { extension ->
         val method = extension.javaClass.methods.firstOrNull { candidate ->
             candidate.name == "jvmToolchain" && candidate.parameterCount == 1 &&
-                    candidate.parameterTypes.firstOrNull() == Int::class.javaPrimitiveType
+                candidate.parameterTypes.firstOrNull() == Int::class.javaPrimitiveType
         }
         method?.invoke(extension, version)
     }
@@ -16,10 +17,11 @@ fun configureKotlinToolchain(project: Project, version: Int) {
 
 subprojects {
     pluginManager.withPlugin("org.jetbrains.kotlin.jvm") {
-        configureKotlinToolchain(this@subprojects, 21)
+        configureKotlinToolchain(this@subprojects, 17)
     }
 
-    pluginManager.withPlugin("org.jetbrains.kotlin.android") {
-        configureKotlinToolchain(this@subprojects, 21)
+    tasks.withType<Test>().configureEach {
+        useJUnitPlatform()
+        reports.junitXml.required.set(true)
     }
 }

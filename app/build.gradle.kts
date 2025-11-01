@@ -55,6 +55,9 @@ android {
 
 dependencies {
     implementation(projects.core)
+    implementation(projects.export)
+    implementation(projects.logging)
+    implementation(projects.storage)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.material3)
@@ -62,4 +65,6 @@ dependencies {
     implementation(libs.androidx.activity.compose)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
+
+    testImplementation(libs.junit)
 }

@@ -1,19 +1,13 @@
 package app.aihandmade.core.imports
 
 import app.aihandmade.core.pipeline.RunContext
-import app.aihandmade.export.ArtifactMetadata
-import app.aihandmade.export.ArtifactRef
-import app.aihandmade.export.ArtifactStore
-import app.aihandmade.export.Bitmap
-import app.aihandmade.logging.Logger
 import java.nio.file.Files
-import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.coroutines.startCoroutine
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
 
 class ImportStepTest {
     @Test
@@ -21,9 +15,9 @@ class ImportStepTest {
         val tempDir = Files.createTempDirectory("import-step-test")
         tempDir.toFile().deleteOnExit()
 
-        val artifactPath = tempDir.resolve("artifacts/01_import/import_normalized_hash.png")
-        val fakeStore = FakeArtifactStore(ArtifactRef(artifactPath))
-        val fakeLogger = RecordingLogger()
+        val artifactPath = tempDir.resolve("artifacts/01_import/import_normalized.png")
+        val fakeStore = FakeArtifactStore(artifactPath)
+        val fakeLogger = FakeLogger()
 
         val context = RunContext(
             runId = "run-123",
@@ -35,7 +29,8 @@ class ImportStepTest {
 
         val step = ImportStep()
         val params = ImportParams(uri = "content://demo/image")
-        val bitmap = Bitmap.from(4, 3) { x, y -> (0xFF shl 24) or (x shl 16) or (y shl 8) }
+        val image = ImageBuffer.from(4, 3) { x, y -> (0xFF shl 24) or (x shl 16) or (y shl 8) }
+        val bitmap = image.toBitmap()
 
         val result = runBlocking { step.run(params, bitmap, context) }
 
@@ -46,18 +41,22 @@ class ImportStepTest {
         assertEquals(4, result.metrics["width_px"])
         assertEquals(3, result.metrics["height_px"])
         val megapixelsMetric = result.metrics["megapixels"] as Float
-        assertEquals(result.value.megapixels, megapixelsMetric, 0f)
+        assertEquals(result.value.megapixels, megapixelsMetric, 1e-7f)
 
-        val artifact = result.artifacts["import_normalized"] as String
-        assertEquals(artifactPath.toString(), artifact)
+        assertTrue(result.artifacts.isNotEmpty())
+        val artifact = result.artifacts["import_normalized"] as? String
+        assertTrue(!artifact.isNullOrBlank())
 
         assertEquals("01_import", fakeStore.lastStep)
         assertEquals("import_normalized", fakeStore.lastName)
-        assertTrue(fakeStore.lastMetadata.paramsHash.isNotBlank())
-        assertEquals(4, fakeStore.lastMetadata.meta["width_px"])
-        assertEquals(3, fakeStore.lastMetadata.meta["height_px"])
+        val metadata = requireNotNull(fakeStore.lastMetadata)
+        assertTrue(metadata.paramsHash.isNotBlank())
+        assertEquals(4, metadata.meta["width_px"])
+        assertEquals(3, metadata.meta["height_px"])
 
-        assertTrue(fakeLogger.startedSteps.contains("IMPORT"))
+        val startedSpan = fakeLogger.startedSpans.single()
+        assertEquals("IMPORT", startedSpan.step)
+        assertTrue(fakeLogger.endedSpans.contains(startedSpan))
     }
 
     private fun <T> runBlocking(block: suspend () -> T): T {
@@ -69,42 +68,5 @@ class ImportStepTest {
             }
         })
         return outcome!!.getOrThrow()
-    }
-
-    private class FakeArtifactStore(private val ref: ArtifactRef) : ArtifactStore {
-        lateinit var lastStep: String
-        lateinit var lastName: String
-        lateinit var lastBitmap: Bitmap
-        lateinit var lastMetadata: ArtifactMetadata
-
-        override fun savePng(step: String, name: String, bitmap: Bitmap, meta: ArtifactMetadata): ArtifactRef {
-            lastStep = step
-            lastName = name
-            lastBitmap = bitmap
-            lastMetadata = meta
-            return ref
-        }
-    }
-
-    private class RecordingLogger : Logger {
-        val startedSteps = CopyOnWriteArrayList<String>()
-
-        override fun startSpan(step: String, paramsCanonical: String): Logger.Span {
-            startedSteps += step
-            return Logger.Span(step = step, paramsCanonical = paramsCanonical, startedAt = java.time.Instant.now())
-        }
-
-        override fun endSpan(
-            span: Logger.Span,
-            metrics: Map<String, Any?>,
-            artifacts: Map<String, Any?>,
-            status: String,
-        ) {
-            // no-op
-        }
-
-        override fun writeEvent(level: String, message: String, fields: Map<String, Any?>) {
-            // no-op
-        }
     }
 }

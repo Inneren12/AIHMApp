@@ -1,8 +1,8 @@
 package app.aihandmade.tests
 
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.nio.file.Files
-import kotlin.test.assertTrue
 import kotlin.text.RegexOption
 
 class A02_AppGradleComposeTest {
@@ -13,11 +13,11 @@ class A02_AppGradleComposeTest {
 
     val hasComposeFeature = Regex(
       """buildFeatures\s*\{\s*[^}]*compose\s*=\s*true""",
-      RegexOption.DOTALL,
+      setOf(RegexOption.DOT_MATCHES_ALL),
     ).containsMatchIn(g)
     val hasComposeOptions = Regex(
       """composeOptions\s*\{\s*[^}]*kotlinCompilerExtensionVersion""",
-      RegexOption.DOTALL,
+      setOf(RegexOption.DOT_MATCHES_ALL),
     ).containsMatchIn(g)
     val hasJvmTarget = Regex("""jvmTarget\s*=\s*[\"']17[\"']""")
       .containsMatchIn(g)

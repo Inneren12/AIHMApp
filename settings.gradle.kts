@@ -1,6 +1,15 @@
-import org.gradle.api.initialization.resolve.RepositoriesMode
-
 pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+    plugins {
+        id("org.jetbrains.kotlin.jvm") version "2.0.20"
+    }
+}
+
+dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
@@ -8,23 +17,8 @@ pluginManagement {
     }
 }
 
-dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-    repositories {
-        google()
-        mavenCentral()
-    }
-    versionCatalogs {
-        create("libs")
-    }
-}
-
 rootProject.name = "AiHandMadeApp"
 
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
-include(":app")
-include(":core")
-include(":logging")
-include(":storage")
-include(":export")
+include(":sanity")

@@ -10,7 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.compose.viewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import app.aihandmade.core.imports.ImportStep
 import app.aihandmade.imports.ImportAdapter
 import app.aihandmade.run.RunContextFactory

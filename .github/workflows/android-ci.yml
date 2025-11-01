@@ -1,0 +1,54 @@
+name: Android CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - feature/**
+      - codex/**
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Gradle build
+        run: ./gradlew build --stacktrace --info
+
+      - name: Gradle test
+        run: ./gradlew test --stacktrace --info
+
+      - name: Fail if no tests executed
+        shell: bash
+        run: |
+          shopt -s globstar
+          FILES=(**/build/test-results/test/*.xml)
+          if [ ${#FILES[@]} -eq 0 ]; then
+            echo "No JUnit XML found"; exit 1
+          fi
+          COUNT=$(grep -hPo '(?<=tests=")[0-9]+' "${FILES[@]}" | awk '{s+=$1} END {print s+0}')
+          echo "Total tests executed: $COUNT"
+          if [ "$COUNT" -lt 1 ]; then
+            echo "No tests executed"; exit 1
+          fi
+
+      - name: Upload JUnit reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-reports
+          path: '**/build/test-results/test/*.xml'

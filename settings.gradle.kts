@@ -22,3 +22,5 @@ dependencyResolutionManagement {
 rootProject.name = "AiHandMadeApp"
 
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
+
+include(":app")

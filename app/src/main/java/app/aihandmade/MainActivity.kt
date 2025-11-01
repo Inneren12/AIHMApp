@@ -11,7 +11,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,8 +40,3 @@ private fun Greeting() {
     Text(text = "AiHandMadeApp")
 }
 
-@Preview(showBackground = true)
-@Composable
-private fun AiHandMadeAppPreview() {
-    AiHandMadeApp()
-}

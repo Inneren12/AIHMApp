@@ -16,10 +16,10 @@ fun configureKotlinToolchain(project: Project, version: Int) {
 
 subprojects {
     pluginManager.withPlugin("org.jetbrains.kotlin.jvm") {
-        configureKotlinToolchain(this@subprojects, 17)
+        configureKotlinToolchain(this@subprojects, 21)
     }
 
     pluginManager.withPlugin("org.jetbrains.kotlin.android") {
-        configureKotlinToolchain(this@subprojects, 17)
+        configureKotlinToolchain(this@subprojects, 21)
     }
 }

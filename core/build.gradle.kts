@@ -1,5 +1,11 @@
 plugins {
-    alias(libs.plugins.kotlin.jvm)
+    kotlin("jvm")
+}
+
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(17))
+    }
 }
 
 dependencies {

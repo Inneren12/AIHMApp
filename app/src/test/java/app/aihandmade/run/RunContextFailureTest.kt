@@ -5,6 +5,7 @@ import java.io.IOException
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import kotlin.io.path.div
+import kotlin.io.path.writeText
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
@@ -24,7 +25,7 @@ class RunContextFailureTest {
             Files.createDirectories(projectDir)
 
             val runsFile = projectDir / Paths.RUNS
-            Files.writeString(runsFile, "not a directory", StandardCharsets.UTF_8)
+            runsFile.writeText("not a directory", StandardCharsets.UTF_8)
 
             val factory = RunContextFactory(tempDir.toFile())
 

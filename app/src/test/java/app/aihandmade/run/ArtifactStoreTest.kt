@@ -8,6 +8,7 @@ import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
 import kotlin.io.path.div
+import kotlin.io.path.readText
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -40,7 +41,7 @@ class ArtifactStoreTest {
             assertTrue(Files.exists(ref.path))
             assertTrue(Files.exists(expectedMetadata))
 
-            val metadataContents = Files.readString(expectedMetadata)
+            val metadataContents = expectedMetadata.readText()
             assertTrue(metadataContents.contains("RID-ART"))
             assertTrue(metadataContents.contains("step-a"))
         }

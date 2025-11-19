@@ -4,7 +4,15 @@ plugins {
 
 java {
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(17))
+        languageVersion.set(JavaLanguageVersion.of(21))
+    }
+}
+
+kotlin {
+    sourceSets {
+        val test by getting {
+            kotlin.setSrcDirs(listOf("src/test/kotlin"))
+        }
     }
 }
 

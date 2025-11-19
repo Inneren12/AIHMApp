@@ -12,8 +12,7 @@ dependencies {
     implementation(projects.export)
     implementation(projects.logging)
 
-    testImplementation(libs.junit.jupiter.api)
-    testRuntimeOnly(libs.junit.jupiter.engine)
+    testImplementation(libs.junit)
 }
 
 tasks.test {

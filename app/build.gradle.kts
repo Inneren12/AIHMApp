@@ -33,6 +33,8 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // ДЕСУГАРИНГ ДЛЯ java.time НА API 24–25
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -51,6 +53,11 @@ android {
 }
 
 dependencies {
+    implementation(projects.core)
+    implementation(projects.export)
+    implementation(projects.logging)
+    implementation(projects.storage)
+
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.foundation)
@@ -59,7 +66,21 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    implementation(libs.androidx.exifinterface)
+
+    debugImplementation(libs.androidx.compose.ui.tooling)
+
+    testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.junit)
+    testImplementation(libs.jackson.databind)
+    testImplementation(libs.jackson.kotlin)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.robolectric)
+
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+
+    coreLibraryDesugaring(libs.desugar.jdk.libs.nio)
 }

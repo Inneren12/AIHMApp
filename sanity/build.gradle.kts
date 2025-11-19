@@ -7,7 +7,8 @@ kotlin {
 }
 
 dependencies {
-    testImplementation("org.junit.jupiter:junit-jupiter:5.11.0")
+    testImplementation(libs.junit.jupiter.api)
+    testRuntimeOnly(libs.junit.jupiter.engine)
 }
 
 tasks.test {

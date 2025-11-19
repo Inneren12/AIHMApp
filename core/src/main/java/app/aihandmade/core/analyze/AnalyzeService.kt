@@ -36,12 +36,21 @@ class DefaultAnalyzeService : AnalyzeService {
         val lap = FloatArray(size)
         ImageOps.laplacian(gray, w, h, lap)
         val tLow = ImageOps.quantile(mag, size, 0.5)
-        val smoothMask = mag.mapIndexedNotNull { idx, m -> if (m >= tLow) abs(lap[idx]) else null }
+        val smoothMask = mutableListOf<Float>()
+        for (idx in mag.indices) {
+            val m = mag[idx]
+            if (m >= tLow) {
+                smoothMask.add(abs(lap[idx]))
+            }
+        }
         val smoothCount = smoothMask.size
         val p99Lap = if (smoothCount > 0) ImageOps.quantile(smoothMask.toFloatArray(), smoothCount, 0.99) else 1f
         var smoothGood = 0
         if (smoothCount > 0) {
-            smoothMask.forEach { if (it / (p99Lap.takeIf { it > 1e-6f } ?: 1f) < 0.2f) smoothGood++ }
+            val norm = p99Lap.takeIf { it > 1e-6f } ?: 1f
+            for (value in smoothMask) {
+                if (value / norm < 0.2f) smoothGood++
+            }
         }
         val gradientSmoothness = if (smoothCount == 0) 1.0 else smoothGood.toDouble() / smoothCount
 

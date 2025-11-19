@@ -33,7 +33,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -44,10 +43,6 @@ android {
         compose = true
     }
 
-    composeOptions {
-        kotlinCompilerExtensionVersion = libs.versions.compose.compiler.get()
-    }
-
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -56,28 +51,15 @@ android {
 }
 
 dependencies {
-    implementation(projects.core)
-    implementation(projects.export)
-    implementation(projects.logging)
-    implementation(projects.storage)
-    implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.compose.ui)
-    implementation(libs.androidx.compose.material3)
-    implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.activity.compose)
-    implementation(libs.androidx.navigation.compose)
-    implementation(libs.androidx.lifecycle.viewmodel.ktx)
-    implementation(libs.androidx.exifinterface)
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs_nio:2.1.4")
-
-    debugImplementation(libs.androidx.compose.ui.tooling)
-
-    testImplementation("junit:junit:4.13.2")
-    testImplementation("com.fasterxml.jackson.core:jackson-databind:2.17.2")
-    testImplementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.17.2")
-    testImplementation("androidx.test:core:1.5.0")
-    testImplementation("org.robolectric:robolectric:4.12.2")
-    testImplementation(libs.kotlinx.coroutines.test)
-    testImplementation(kotlin("test-junit"))
-    testRuntimeOnly(libs.junit)
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.foundation)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.lifecycle.vm.compose)
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.material)
+    testImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
 }

@@ -19,13 +19,11 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "AiHandMadeApp"
+rootProject.name = "handmade-engine"
 
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
-include(":sanity")
-include(":core")
-include(":export")
-include(":logging")
-include(":storage")
-include(":app")
+include(":core:domain")
+include(":core:decision")
+include(":core:io")
+include(":app:android")

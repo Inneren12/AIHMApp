@@ -8,7 +8,7 @@ plugins {
 
 android {
     namespace = "app.aihandmade"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "app.aihandmade"

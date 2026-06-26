@@ -71,4 +71,41 @@ class PaletteInitEdgeTest {
             "Expected dE2000($lab0, $lab1) < $S_MIN but got $de — test premise is invalid"
         )
     }
+
+    /**
+     * A rejected anchor candidate (neutral, pos 1: near-dup of black, pos 0) given a very high
+     * weight must not re-enter the palette as a fill. Fills are restricted to positions that were
+     * never nominated as anchors, whether or not they were subsequently accepted.
+     *
+     * Layout (n=5, fraction=1):
+     *   pos 0  L=0.10 a=0    b=0    weight=1    → black (accepted)
+     *   pos 1  L=0.15 a=0    b=0    weight=1000 → neutral (nominated, rejected: dE2000≈1.25 from black)
+     *   pos 2  L=0.95 a=0    b=0    weight=1    → white (accepted)
+     *   pos 3  L=0.50 a=0.3  b=0    weight=2    → regular fill candidate
+     *   pos 4  L=0.70 a=0    b=0.3  weight=2    → regular fill candidate
+     *
+     * neutral tie-break: |0.15−0.55|=|0.95−0.55|=0.40 → smaller index → pos 1.
+     */
+    @Test
+    fun rejectedAnchorWithHighWeightDoesNotAppearAsFill() {
+        val s = SampleSet(
+            index = intArrayOf(0, 1, 2, 3, 4),
+            L = floatArrayOf(0.10f, 0.15f, 0.95f, 0.50f, 0.70f),
+            a = floatArrayOf(0f, 0f, 0f, 0.3f, 0f),
+            b = floatArrayOf(0f, 0f, 0f, 0f, 0.3f),
+            weight = floatArrayOf(1f, 1000f, 1f, 2f, 2f),
+            sourceWidth = 5,
+            sourceHeight = 1,
+        )
+
+        val p = initPalette(s, k0 = 14)
+
+        // pos 1 (OKLab 0.15, 0, 0) must not appear anywhere in the palette.
+        for (i in 0 until p.size) {
+            assertTrue(
+                !(p.L[i] == 0.15f && p.a[i] == 0f && p.b[i] == 0f),
+                "rejected anchor candidate (pos 1) must not appear in palette at index $i"
+            )
+        }
+    }
 }

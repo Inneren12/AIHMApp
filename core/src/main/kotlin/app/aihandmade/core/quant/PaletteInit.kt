@@ -60,11 +60,12 @@ fun initPalette(samples: SampleSet, k0: Int = K0_TARGET): Palette {
     fun sampleToLab(p: Int): Lab =
         OkLab(samples.L[p], samples.a[p], samples.b[p]).toLinearRgb().toLab()
 
+    val nominatedAnchors = listOf(black, white, neutral).distinct()
+
     val anchorPositions = mutableListOf<Int>()
     val anchorLabs = mutableListOf<Lab>()
 
-    for (p in listOf(black, white, neutral)) {
-        if (p in anchorPositions) continue
+    for (p in nominatedAnchors) {
         val lab = sampleToLab(p)
         if (anchorLabs.all { existing -> deltaE2000(lab, existing) >= S_MIN }) {
             anchorPositions.add(p)
@@ -85,9 +86,9 @@ fun initPalette(samples: SampleSet, k0: Int = K0_TARGET): Palette {
     }
     paletteLab.addAll(anchorLabs)
 
-    val anchorSet = anchorPositions.toHashSet()
+    val nominatedAnchorSet = nominatedAnchors.toHashSet()
     val candidates = (0 until n)
-        .filter { it !in anchorSet }
+        .filter { it !in nominatedAnchorSet }
         .sortedWith(compareByDescending<Int> { samples.weight[it] }.thenBy { it })
 
     for (p in candidates) {

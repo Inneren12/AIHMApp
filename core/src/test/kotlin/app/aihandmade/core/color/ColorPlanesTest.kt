@@ -2,7 +2,7 @@ package app.aihandmade.core.color
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
+import org.junit.jupiter.api.Assertions.assertThrows
 
 /**
  * CONTRACT TEST for core/color commit 3 (SoA planes + bulk image->planes conversion).

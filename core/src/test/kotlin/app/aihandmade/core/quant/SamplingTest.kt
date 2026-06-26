@@ -1,6 +1,7 @@
 package app.aihandmade.core.quant
 
 import app.aihandmade.core.color.Srgb
+import app.aihandmade.core.color.toOkLab
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue

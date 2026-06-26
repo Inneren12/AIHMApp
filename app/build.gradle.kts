@@ -45,6 +45,10 @@ android {
         compose = true
     }
 
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.15"
+    }
+
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -74,6 +78,7 @@ dependencies {
 
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.junit)
+    testImplementation(kotlin("test"))
     testImplementation(libs.jackson.databind)
     testImplementation(libs.jackson.kotlin)
     testImplementation(libs.androidx.test.core)

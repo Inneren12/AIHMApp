@@ -92,4 +92,11 @@ class DeltaEStatsTest {
         val b = LabPlanes(FloatArray(1), FloatArray(1), FloatArray(1), 1, 1)
         assertThrows(IllegalArgumentException::class.java) { deltaEStats(a, b) }
     }
+
+    @Test
+    fun emptyImagesThrowFromIntArrayOverload() {
+        assertThrows(IllegalArgumentException::class.java) {
+            deltaEStats(intArrayOf(), intArrayOf(), 0, 0)
+        }
+    }
 }

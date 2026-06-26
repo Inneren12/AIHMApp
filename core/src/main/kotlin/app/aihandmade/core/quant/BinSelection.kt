@@ -9,6 +9,9 @@ data class BinIndex(val l: Int, val a: Int, val b: Int)
 
 /** Maps an OKLab coordinate to its bin. a/b are shifted by +0.5 before scaling; all axes clamp to [0,23]. */
 fun binOf(okL: Float, okA: Float, okB: Float): BinIndex {
+    require(okL.isFinite() && okA.isFinite() && okB.isFinite()) {
+        "OKLab coordinates must be finite"
+    }
     val l = (okL.coerceIn(0f, 0.9999f) * B_L).toInt().coerceIn(0, B_L - 1)
     val a = ((okA + 0.5f).coerceIn(0f, 0.9999f) * B_A).toInt().coerceIn(0, B_A - 1)
     val b = ((okB + 0.5f).coerceIn(0f, 0.9999f) * B_B).toInt().coerceIn(0, B_B - 1)
@@ -21,6 +24,9 @@ data class BinSelection(val bin: BinIndex, val impSum: Double)
 fun selectImportantBin(samples: SampleSet, importance: DoubleArray): BinSelection {
     require(samples.size >= 1) { "samples must not be empty" }
     require(importance.size == samples.size) { "importance size must match sample count" }
+    for (v in importance) {
+        require(v.isFinite() && v >= 0.0) { "importance values must be finite and non-negative" }
+    }
 
     val hist = HashMap<BinIndex, Double>()
     for (i in 0 until samples.size) {

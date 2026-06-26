@@ -1,16 +1,10 @@
 package app.aihandmade.core.quant
 
-import app.aihandmade.core.color.OkLab
-import app.aihandmade.core.color.Srgb
 import app.aihandmade.core.color.toOkLabPlanes
-import app.aihandmade.core.color.toOkLab as srgbToOkLabColor
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sqrt
-
-// Bridge so test code in this package can call srgb.toOkLab() without importing from color.
-internal fun Srgb.toOkLab(): OkLab = srgbToOkLabColor()
 
 const val DEFAULT_SEED: Long = 1337L
 
@@ -29,19 +23,28 @@ class SampleSet(
     val sourceWidth: Int, val sourceHeight: Int,
 ) {
     val size: Int get() = index.size
+
+    init {
+        require(sourceWidth >= 1 && sourceHeight >= 1) { "source dimensions must be non-empty" }
+        require(L.size == index.size && a.size == index.size && b.size == index.size && weight.size == index.size) {
+            "sample arrays must have equal size"
+        }
+        for (i in 1 until index.size) {
+            require(index[i - 1] < index[i]) { "indices must be strictly ascending" }
+        }
+    }
 }
 
 fun samplePixels(
     pixels: IntArray, width: Int, height: Int,
     targetSamples: Int, seed: Long = DEFAULT_SEED,
 ): SampleSet {
-    require(width >= 1 && height >= 1)
-    require(pixels.size == width * height)
-    require(targetSamples >= 1)
+    require(width >= 1 && height >= 1) { "images must be non-empty" }
+    require(targetSamples >= 1) { "targetSamples must be >= 1" }
 
     val planes = pixels.toOkLabPlanes(width, height)
     val lPlane = planes.L
-    val n = width * height
+    val n = planes.size
     val w = width
 
     // Sobel edge magnitude over OKLab L (border pixels = 0)

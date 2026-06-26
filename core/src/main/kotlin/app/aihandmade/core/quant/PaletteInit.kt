@@ -50,8 +50,7 @@ fun initPalette(samples: SampleSet, k0: Int = K0_TARGET): Palette {
         .minWithOrNull(compareBy({ chroma(it) }, { it }))!!
 
     val neutralPool = (0 until n).filter {
-        abs(samples.a[it].toDouble()) <= NEUTRAL_CHROMA_MAX &&
-                abs(samples.b[it].toDouble()) <= NEUTRAL_CHROMA_MAX
+        chroma(it) <= NEUTRAL_CHROMA_MAX
     }.ifEmpty { (0 until n).toList() }
     val neutral = neutralPool.minWithOrNull(
         compareBy({ abs(samples.L[it].toDouble() - NEUTRAL_TARGET_L) }, { it })

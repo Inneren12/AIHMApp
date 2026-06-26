@@ -73,6 +73,43 @@ class PaletteInitEdgeTest {
     }
 
     /**
+     * Tinted candidate (a=b=0.019) passes the old per-component guard (each value ≤ 0.02) but its
+     * radial chroma sqrt(0.019²+0.019²) ≈ 0.0269 > NEUTRAL_CHROMA_MAX. The truly neutral pos 2
+     * (a=b=0) is slightly farther from L=0.55 but must be selected under the correct radial filter.
+     *
+     * n=4, fraction=1:
+     *   pos 0  L=0.05 a=0     b=0     → black
+     *   pos 1  L=0.55 a=0.019 b=0.019 → closest to L target, tinted; radial chroma > cap
+     *   pos 2  L=0.56 a=0     b=0     → truly neutral, |0.56−0.55|=0.01
+     *   pos 3  L=0.98 a=0     b=0     → white
+     */
+    @Test
+    fun neutralCandidateUsesRadialChromaNotPerComponentThreshold() {
+        val s = SampleSet(
+            index = intArrayOf(0, 1, 2, 3),
+            L = floatArrayOf(0.05f, 0.55f, 0.56f, 0.98f),
+            a = floatArrayOf(0f, 0.019f, 0f, 0f),
+            b = floatArrayOf(0f, 0.019f, 0f, 0f),
+            weight = floatArrayOf(1f, 1f, 1f, 1f),
+            sourceWidth = 4,
+            sourceHeight = 1,
+        )
+
+        val p = initPalette(s, k0 = 14)
+
+        // The tinted candidate must NOT be among the anchors.
+        for (i in 0 until p.anchorCount) {
+            assertTrue(
+                !(p.a[i] == 0.019f && p.b[i] == 0.019f),
+                "tinted candidate (a=b=0.019, radial chroma > NEUTRAL_CHROMA_MAX) must not be anchor[$i]"
+            )
+        }
+        // The radially neutral candidate (pos 2, L=0.56) must be the neutral anchor.
+        val trueNeutralIsAnchor = (0 until p.anchorCount).any { p.L[it] == 0.56f && p.a[it] == 0f && p.b[it] == 0f }
+        assertTrue(trueNeutralIsAnchor, "radially neutral candidate (pos 2, L=0.56) must be chosen as anchor")
+    }
+
+    /**
      * A rejected anchor candidate (neutral, pos 1: near-dup of black, pos 0) given a very high
      * weight must not re-enter the palette as a fill. Fills are restricted to positions that were
      * never nominated as anchors, whether or not they were subsequently accepted.

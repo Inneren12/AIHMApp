@@ -199,6 +199,14 @@ fun deltaOk(x: OkLab, y: OkLab): Float = Math.sqrt(deltaSqOk(x, y).toDouble()).t
 
 // --- SoA planes -------------------------------------------------------------------------------
 
+/** Validates dimensions and returns width*height without Int overflow. */
+private fun checkedPlaneSize(width: Int, height: Int): Int {
+    require(width >= 0 && height >= 0) { "width/height must be non-negative" }
+    val expected = width.toLong() * height.toLong()
+    require(expected <= Int.MAX_VALUE) { "width*height exceeds Int.MAX_VALUE" }
+    return expected.toInt()
+}
+
 /**
  * OKLab colour as structure-of-arrays. Flat row-major layout: index = y * width + x.
  * Plain class (not data class) — FloatArray identity equality would be misleading.
@@ -207,7 +215,7 @@ class OkLabPlanes(
     val L: FloatArray, val a: FloatArray, val b: FloatArray,
     val width: Int, val height: Int,
 ) {
-    val size: Int get() = width * height
+    val size: Int = checkedPlaneSize(width, height)
     init { require(L.size == size && a.size == size && b.size == size) { "plane size != width*height" } }
 }
 
@@ -219,14 +227,14 @@ class LabPlanes(
     val L: FloatArray, val a: FloatArray, val b: FloatArray,
     val width: Int, val height: Int,
 ) {
-    val size: Int get() = width * height
+    val size: Int = checkedPlaneSize(width, height)
     init { require(L.size == size && a.size == size && b.size == size) { "plane size != width*height" } }
 }
 
 /** Converts a packed-ARGB [IntArray] to [OkLabPlanes] (row-major). Allocates three [FloatArray]s only. */
 fun IntArray.toOkLabPlanes(width: Int, height: Int): OkLabPlanes {
-    require(size == width * height) { "pixels.size != width*height" }
-    val n = size
+    val n = checkedPlaneSize(width, height)
+    require(size == n) { "pixels.size != width*height" }
     val L = FloatArray(n); val A = FloatArray(n); val B = FloatArray(n)
     for (i in 0 until n) {
         val argb = this[i]
@@ -241,8 +249,8 @@ fun IntArray.toOkLabPlanes(width: Int, height: Int): OkLabPlanes {
 
 /** Converts a packed-ARGB [IntArray] to [LabPlanes] (row-major). Allocates three [FloatArray]s only. */
 fun IntArray.toLabPlanes(width: Int, height: Int): LabPlanes {
-    require(size == width * height) { "pixels.size != width*height" }
-    val n = size
+    val n = checkedPlaneSize(width, height)
+    require(size == n) { "pixels.size != width*height" }
     val L = FloatArray(n); val A = FloatArray(n); val B = FloatArray(n)
     for (i in 0 until n) {
         val argb = this[i]

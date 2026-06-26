@@ -13,14 +13,19 @@ fun ssim(reference: LabPlanes, candidate: LabPlanes): Double {
     }
     val width = reference.width
     val height = reference.height
+    require(width >= 1 && height >= 1) { "images must be non-empty" }
 
     val X = reference.L
     val Y = candidate.L
     val windowSize = minOf(8, width, height)
     val n = (windowSize * windowSize).toDouble()
 
+    require(width < Int.MAX_VALUE) { "width too large" }
     val stride = width + 1
-    val satSize = stride * (height + 1)
+    val satSizeLong = stride.toLong() * (height.toLong() + 1L)
+    require(satSizeLong <= Int.MAX_VALUE) { "summed-area table size exceeds Int.MAX_VALUE" }
+    val satSize = satSizeLong.toInt()
+
     val ix = DoubleArray(satSize)
     val ixx = DoubleArray(satSize)
     val iy = DoubleArray(satSize)
@@ -31,15 +36,15 @@ fun ssim(reference: LabPlanes, candidate: LabPlanes): Double {
         for (x in 0 until width) {
             val xv = X[y * width + x].toDouble()
             val yv = Y[y * width + x].toDouble()
-            val above = y * stride + x
-            val left = (y + 1) * stride + x
-            val diag = y * stride + (x + 1)
-            val cur = (y + 1) * stride + (x + 1)
-            ix[cur] = xv + ix[diag] + ix[left] - ix[above]
-            ixx[cur] = xv * xv + ixx[diag] + ixx[left] - ixx[above]
-            iy[cur] = yv + iy[diag] + iy[left] - iy[above]
-            iyy[cur] = yv * yv + iyy[diag] + iyy[left] - iyy[above]
-            ixy[cur] = xv * yv + ixy[diag] + ixy[left] - ixy[above]
+            val diag  = y * stride + x
+            val left  = (y + 1) * stride + x
+            val above = y * stride + (x + 1)
+            val cur   = (y + 1) * stride + (x + 1)
+            ix[cur]  = xv       + ix[above]  + ix[left]  - ix[diag]
+            ixx[cur] = xv * xv  + ixx[above] + ixx[left] - ixx[diag]
+            iy[cur]  = yv       + iy[above]  + iy[left]  - iy[diag]
+            iyy[cur] = yv * yv  + iyy[above] + iyy[left] - iyy[diag]
+            ixy[cur] = xv * yv  + ixy[above] + ixy[left] - ixy[diag]
         }
     }
 
@@ -58,7 +63,7 @@ fun ssim(reference: LabPlanes, candidate: LabPlanes): Double {
             val muY = box(iy) / n
             val varX = box(ixx) / n - muX * muX
             val varY = box(iyy) / n - muY * muY
-            val cov = box(ixy) / n - muX * muY
+            val cov  = box(ixy) / n - muX * muY
 
             sum += ((2.0 * muX * muY + C1) * (2.0 * cov + C2)) /
                    ((muX * muX + muY * muY + C1) * (varX + varY + C2))

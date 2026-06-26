@@ -1,7 +1,6 @@
 package app.aihandmade.core.quant
 
 import app.aihandmade.core.color.OkLab
-import app.aihandmade.core.color.deltaOk
 import app.aihandmade.core.color.deltaSqOk
 import kotlin.math.floor
 import kotlin.math.min
@@ -27,10 +26,9 @@ fun residual(samples: SampleSet, palette: Palette): Residual {
     for (i in 0 until n) {
         val si = OkLab(samples.L[i], samples.a[i], samples.b[i])
         var minSq = Float.POSITIVE_INFINITY
-        var minIdx = 0
         for (c in 0 until palette.size) {
             val sq = deltaSqOk(si, OkLab(palette.L[c], palette.a[c], palette.b[c]))
-            if (sq < minSq) { minSq = sq; minIdx = c }
+            if (sq < minSq) minSq = sq
         }
         errors[i] = if (minSq == 0f) 0f else sqrt(minSq.toDouble()).toFloat()
         importance[i] = errors[i].toDouble() * samples.weight[i].toDouble()
@@ -39,20 +37,21 @@ fun residual(samples: SampleSet, palette: Palette): Residual {
     var impTotal = 0.0
     for (v in importance) impTotal += v
 
-    fun percentile(p: Double): Float {
-        val sorted = errors.copyOf().also { it.sort() }
-        val pos = p * (n - 1)
+    val sortedErrors = errors.copyOf().also { it.sort() }
+
+    fun percentile(sorted: FloatArray, p: Double): Float {
+        val pos = p * (sorted.size - 1)
         val lo = floor(pos).toInt()
-        val hi = min(n - 1, lo + 1)
+        val hi = min(sorted.size - 1, lo + 1)
         val w = pos - lo
-        return ((sorted[lo] * (1.0 - w)) + (sorted[hi] * w)).toFloat()
+        return (sorted[lo] * (1.0 - w) + sorted[hi] * w).toFloat()
     }
 
     return Residual(
         errors = errors,
         importance = importance,
         impTotal = impTotal,
-        deMedian = percentile(0.5),
-        deP95 = percentile(0.95),
+        deMedian = percentile(sortedErrors, 0.5),
+        deP95 = percentile(sortedErrors, 0.95),
     )
 }

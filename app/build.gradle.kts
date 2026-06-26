@@ -74,6 +74,7 @@ dependencies {
 
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.junit)
+    testImplementation(kotlin("test"))
     testImplementation(libs.jackson.databind)
     testImplementation(libs.jackson.kotlin)
     testImplementation(libs.androidx.test.core)

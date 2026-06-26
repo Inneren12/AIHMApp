@@ -57,14 +57,21 @@ fun initPalette(samples: SampleSet, k0: Int = K0_TARGET): Palette {
         compareBy({ abs(samples.L[it].toDouble() - NEUTRAL_TARGET_L) }, { it })
     )!!
 
-    val anchorPositions = mutableListOf<Int>()
-    for (p in listOf(black, white, neutral)) {
-        if (p !in anchorPositions) anchorPositions.add(p)
-    }
-    val anchorCount = anchorPositions.size
-
     fun sampleToLab(p: Int): Lab =
         OkLab(samples.L[p], samples.a[p], samples.b[p]).toLinearRgb().toLab()
+
+    val anchorPositions = mutableListOf<Int>()
+    val anchorLabs = mutableListOf<Lab>()
+
+    for (p in listOf(black, white, neutral)) {
+        if (p in anchorPositions) continue
+        val lab = sampleToLab(p)
+        if (anchorLabs.all { existing -> deltaE2000(lab, existing) >= S_MIN }) {
+            anchorPositions.add(p)
+            anchorLabs.add(lab)
+        }
+    }
+    val anchorCount = anchorPositions.size
 
     val paletteL = mutableListOf<Float>()
     val paletteA = mutableListOf<Float>()
@@ -75,8 +82,8 @@ fun initPalette(samples: SampleSet, k0: Int = K0_TARGET): Palette {
         paletteL.add(samples.L[p])
         paletteA.add(samples.a[p])
         paletteB.add(samples.b[p])
-        paletteLab.add(sampleToLab(p))
     }
+    paletteLab.addAll(anchorLabs)
 
     val anchorSet = anchorPositions.toHashSet()
     val candidates = (0 until n)

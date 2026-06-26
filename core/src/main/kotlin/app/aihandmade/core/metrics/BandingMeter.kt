@@ -15,8 +15,8 @@ fun bandingScore(reference: LabPlanes, candidate: LabPlanes): Double {
     val refL = reference.L
     val candL = candidate.L
 
-    var denom = 0
-    var num = 0
+    var denom = 0L
+    var num = 0L
 
     for (y in 0 until height)
         for (x in 0 until width - 1) {
@@ -30,7 +30,7 @@ fun bandingScore(reference: LabPlanes, candidate: LabPlanes): Double {
             if (refL[i] != refL[j]) { denom++; if (candL[i] == candL[j]) num++ }
         }
 
-    return if (denom == 0) 0.0 else num.toDouble() / denom.toDouble()
+    return if (denom == 0L) 0.0 else num.toDouble() / denom.toDouble()
 }
 
 /** Convenience: convert both ARGB images via core/color `toLabPlanes`, then delegate to the core. */

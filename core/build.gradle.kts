@@ -2,13 +2,9 @@ plugins {
     kotlin("jvm")
 }
 
-java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(21))
-    }
-}
-
 kotlin {
+    jvmToolchain(17)
+
     sourceSets {
         val test by getting {
             kotlin.setSrcDirs(listOf("src/test/kotlin"))

@@ -110,22 +110,20 @@ private fun clip8(c: Double): Int {
     return if (v < 0) 0 else if (v > 255) 255 else v
 }
 
-/** Scene-linear sRGB (D65) → OKLab (Ottosson). */
-fun LinearRgb.toOkLab(): OkLab {
-    val r = this.r.toDouble(); val g = this.g.toDouble(); val b = this.b.toDouble()
-
+/** linear sRGB (D65) -> OKLab. Defined ONCE; used per-pixel and in bulk. */
+private inline fun <R> okLabKernel(r: Double, g: Double, b: Double, emit: (L: Float, a: Float, b: Float) -> R): R {
     val l = 0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b
     val m = 0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b
     val s = 0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b
-
     val l_ = cbrt(l); val m_ = cbrt(m); val s_ = cbrt(s)
-
     val L = 0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_
     val A = 1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_
     val B = 0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_
-
-    return OkLab(L.toFloat(), A.toFloat(), B.toFloat())
+    return emit(L.toFloat(), A.toFloat(), B.toFloat())
 }
+
+/** Scene-linear sRGB (D65) → OKLab (Ottosson). */
+fun LinearRgb.toOkLab(): OkLab = okLabKernel(r.toDouble(), g.toDouble(), b.toDouble()) { L, a, b -> OkLab(L, a, b) }
 
 /** OKLab → scene-linear sRGB (exact inverse of [LinearRgb.toOkLab]). */
 fun OkLab.toLinearRgb(): LinearRgb {
@@ -146,24 +144,17 @@ fun OkLab.toLinearRgb(): LinearRgb {
     return LinearRgb(r.toFloat(), g.toFloat(), b.toFloat())
 }
 
-/** Scene-linear sRGB (D65) → CIE-Lab (D65). */
-fun LinearRgb.toLab(): Lab {
-    val r = this.r.toDouble(); val g = this.g.toDouble(); val b = this.b.toDouble()
-
+/** linear sRGB (D65) -> CIE-Lab. Defined ONCE; used per-pixel and in bulk. */
+private inline fun <R> labKernel(r: Double, g: Double, b: Double, emit: (L: Float, a: Float, b: Float) -> R): R {
     val X = 0.4124564 * r + 0.3575761 * g + 0.1804375 * b
     val Y = 0.2126729 * r + 0.7151522 * g + 0.0721750 * b
     val Z = 0.0193339 * r + 0.1191920 * g + 0.9503041 * b
-
-    val fx = labF(X / Xn)
-    val fy = labF(Y / Yn)
-    val fz = labF(Z / Zn)
-
-    val L = 116.0 * fy - 16.0
-    val a = 500.0 * (fx - fy)
-    val bb = 200.0 * (fy - fz)
-
-    return Lab(L.toFloat(), a.toFloat(), bb.toFloat())
+    val fx = labF(X / Xn); val fy = labF(Y / Yn); val fz = labF(Z / Zn)
+    return emit((116.0 * fy - 16.0).toFloat(), (500.0 * (fx - fy)).toFloat(), (200.0 * (fy - fz)).toFloat())
 }
+
+/** Scene-linear sRGB (D65) → CIE-Lab (D65). */
+fun LinearRgb.toLab(): Lab = labKernel(r.toDouble(), g.toDouble(), b.toDouble()) { L, a, b -> Lab(L, a, b) }
 
 /** CIE-Lab (D65) → scene-linear sRGB (exact inverse of [LinearRgb.toLab]). */
 fun Lab.toLinearRgb(): LinearRgb {
@@ -205,3 +196,60 @@ fun deltaSqOk(x: OkLab, y: OkLab): Float {
 
 /** Euclidean distance in OKLab, `sqrt(deltaSqOk)`. */
 fun deltaOk(x: OkLab, y: OkLab): Float = Math.sqrt(deltaSqOk(x, y).toDouble()).toFloat()
+
+// --- SoA planes -------------------------------------------------------------------------------
+
+/**
+ * OKLab colour as structure-of-arrays. Flat row-major layout: index = y * width + x.
+ * Plain class (not data class) — FloatArray identity equality would be misleading.
+ */
+class OkLabPlanes(
+    val L: FloatArray, val a: FloatArray, val b: FloatArray,
+    val width: Int, val height: Int,
+) {
+    val size: Int get() = width * height
+    init { require(L.size == size && a.size == size && b.size == size) { "plane size != width*height" } }
+}
+
+/**
+ * CIE-Lab colour as structure-of-arrays. Flat row-major layout: index = y * width + x.
+ * Plain class (not data class) — FloatArray identity equality would be misleading.
+ */
+class LabPlanes(
+    val L: FloatArray, val a: FloatArray, val b: FloatArray,
+    val width: Int, val height: Int,
+) {
+    val size: Int get() = width * height
+    init { require(L.size == size && a.size == size && b.size == size) { "plane size != width*height" } }
+}
+
+/** Converts a packed-ARGB [IntArray] to [OkLabPlanes] (row-major). Allocates three [FloatArray]s only. */
+fun IntArray.toOkLabPlanes(width: Int, height: Int): OkLabPlanes {
+    require(size == width * height) { "pixels.size != width*height" }
+    val n = size
+    val L = FloatArray(n); val A = FloatArray(n); val B = FloatArray(n)
+    for (i in 0 until n) {
+        val argb = this[i]
+        // .toFloat().toDouble() mirrors LinearRgb's Float storage so values are bit-exact with the per-pixel path.
+        val r = srgbToLinear(((argb ushr 16) and 0xFF) / 255.0).toFloat().toDouble()
+        val g = srgbToLinear(((argb ushr 8) and 0xFF) / 255.0).toFloat().toDouble()
+        val b = srgbToLinear((argb and 0xFF) / 255.0).toFloat().toDouble()
+        okLabKernel(r, g, b) { ll, aa, bb -> L[i] = ll; A[i] = aa; B[i] = bb }
+    }
+    return OkLabPlanes(L, A, B, width, height)
+}
+
+/** Converts a packed-ARGB [IntArray] to [LabPlanes] (row-major). Allocates three [FloatArray]s only. */
+fun IntArray.toLabPlanes(width: Int, height: Int): LabPlanes {
+    require(size == width * height) { "pixels.size != width*height" }
+    val n = size
+    val L = FloatArray(n); val A = FloatArray(n); val B = FloatArray(n)
+    for (i in 0 until n) {
+        val argb = this[i]
+        val r = srgbToLinear(((argb ushr 16) and 0xFF) / 255.0).toFloat().toDouble()
+        val g = srgbToLinear(((argb ushr 8) and 0xFF) / 255.0).toFloat().toDouble()
+        val b = srgbToLinear((argb and 0xFF) / 255.0).toFloat().toDouble()
+        labKernel(r, g, b) { ll, aa, bb -> L[i] = ll; A[i] = aa; B[i] = bb }
+    }
+    return LabPlanes(L, A, B, width, height)
+}

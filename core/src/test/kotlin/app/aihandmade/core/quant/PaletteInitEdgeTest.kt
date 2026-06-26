@@ -1,9 +1,11 @@
 package app.aihandmade.core.quant
 
 import app.aihandmade.core.color.OkLab
+import app.aihandmade.core.color.Srgb
 import app.aihandmade.core.color.deltaE2000
 import app.aihandmade.core.color.toLab
 import app.aihandmade.core.color.toLinearRgb
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
@@ -144,5 +146,27 @@ class PaletteInitEdgeTest {
                 "rejected anchor candidate (pos 1) must not appear in palette at index $i"
             )
         }
+    }
+
+    @Test
+    fun anchorsAlwaysIncludedEvenWhenk0Small() {
+        val w = 6; val h = 6
+        val pixels = IntArray(w * h) { i -> Srgb.of(i * 7, i * 7, i * 7).argb }
+        pixels[0] = Srgb.of(0, 0, 0).argb; pixels[35] = Srgb.of(255, 255, 255).argb
+        val s = samplePixels(pixels, w, h, targetSamples = w * h, seed = 1337L)
+        val p = initPalette(s, k0 = 1)
+        assertEquals(p.anchorCount, p.size, "only anchors when k0 < anchorCount")
+        assertTrue(p.size >= p.anchorCount)
+    }
+
+    @Test
+    fun singleSampleProducesValidPalette() {
+        val s = samplePixels(intArrayOf(Srgb.of(128, 128, 128).argb), 1, 1, 1, 1337L)
+        val p = initPalette(s)
+        assertTrue(p.size >= 1)
+        assertTrue(p.anchorCount in 1..3)
+        assertEquals(p.size, p.L.size)
+        assertEquals(p.size, p.a.size)
+        assertEquals(p.size, p.b.size)
     }
 }

@@ -22,6 +22,16 @@ fun selectK(samples: SampleSet, palette: Palette, k0: Int, kTry: Int = palette.s
     require(k0 >= 1) { "k0 must be >= 1" }
     require(kTry >= k0) { "kTry must be >= k0" }
     require(kTry <= palette.size) { "kTry must be <= palette.size" }
+    for (i in 0 until samples.size) {
+        require(samples.L[i].isFinite() && samples.a[i].isFinite() && samples.b[i].isFinite()) {
+            "sample OKLab coordinates must be finite"
+        }
+    }
+    for (c in 0 until kTry) {
+        require(palette.L[c].isFinite() && palette.a[c].isFinite() && palette.b[c].isFinite()) {
+            "palette OKLab coordinates must be finite"
+        }
+    }
 
     val n = samples.size
 
@@ -120,7 +130,8 @@ private fun medianSmooth(values: FloatArray, window: Int): FloatArray {
 
 private fun findLowGainK(rows: List<KneedleRow>): Int? {
     var streak = 0
-    for (row in rows) {
+    for (idx in 1 until rows.size) {
+        val row = rows[idx]
         if (row.gain < KNEE_TAU_GAIN) {
             streak++
             if (streak >= KNEE_LOW_GAIN_STREAK) return row.k

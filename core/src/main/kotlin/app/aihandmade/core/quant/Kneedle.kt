@@ -130,11 +130,10 @@ private fun medianSmooth(values: FloatArray, window: Int): FloatArray {
 
 private fun findLowGainK(rows: List<KneedleRow>): Int? {
     var streak = 0
-    for (idx in 1 until rows.size) {
-        val row = rows[idx]
-        if (row.gain < KNEE_TAU_GAIN) {
+    for (idx in 1 until rows.size) {   // skip the baseline row (k0): its gain is a synthetic 0
+        if (rows[idx].gain < KNEE_TAU_GAIN) {
             streak++
-            if (streak >= KNEE_LOW_GAIN_STREAK) return row.k
+            if (streak >= KNEE_LOW_GAIN_STREAK) return rows[idx].k
         } else {
             streak = 0
         }

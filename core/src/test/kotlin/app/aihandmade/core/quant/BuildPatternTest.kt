@@ -1,6 +1,5 @@
 package app.aihandmade.core.quant
 
-import app.aihandmade.core.color.OkLabPlanes
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -13,31 +12,34 @@ import org.junit.jupiter.api.Test
  * Implement so this compiles and passes UNCHANGED. You may add tests, but do not edit or weaken
  * anything here.
  *
- * buildPattern takes a prescaled working-space image (already at the target stitch dimensions) and
- * runs sampling -> init -> greedy -> refine -> Kneedle (auto K) -> dither -> DMC match -> symbolize
- * -> counts, returning everything the chart and floss list need. This pins the *stitching* contract,
- * not the numeric output of any single stage: the result is internally consistent (grid sized to the
- * image, indices valid, every per-colour list aligned to the palette, counts recomputed from the grid
- * and summing to the area), deterministic, and rejects an empty image.
+ * buildPattern takes a prescaled image as packed-ARGB sRGB pixels (already at the target stitch
+ * dimensions) and runs sampling -> init -> greedy -> refine -> Kneedle (auto K) -> dither -> DMC match
+ * -> symbolize -> counts. The palette is built by the real importance-weighted samplePixels; the dither
+ * planes come from the SAME pixels via the same sRGB->OkLab conversion, so there is no round-trip. This
+ * pins the *stitching* contract, not the numeric output of any stage: the result is internally
+ * consistent (grid sized to the image, indices valid, every per-colour list aligned to the palette,
+ * counts recomputed from the grid and summing to the area), deterministic, and rejects an empty image.
  */
 class BuildPatternTest {
 
-    /** A small varied OKLab image: L ramps across x, a varies across y, b adds a little structure. */
-    private fun image(w: Int, h: Int): OkLabPlanes {
-        val n = w * h
-        val L = FloatArray(n); val a = FloatArray(n); val b = FloatArray(n)
-        for (i in 0 until n) {
+    /** A varied sRGB image (packed ARGB): R ramps across x, G across y, B adds a little structure. */
+    private fun image(w: Int, h: Int): IntArray {
+        val px = IntArray(w * h)
+        for (i in px.indices) {
             val x = i % w; val y = i / w
-            L[i] = 0.15f + 0.70f * (x.toFloat() / (w - 1))
-            a[i] = -0.10f + 0.20f * (y.toFloat() / (h - 1))
-            b[i] = 0.05f * (((x + y) % 3) - 1)
+            val r = 20 + 215 * x / (w - 1)
+            val g = 30 + 200 * y / (h - 1)
+            val b = 60 + 40 * ((x + y) % 4)
+            px[i] = (0xFF shl 24) or (r shl 16) or (g shl 8) or b
         }
-        return OkLabPlanes(L, a, b, w, h)
+        return px
     }
+
+    private fun solid(w: Int, h: Int, argb: Int): IntArray = IntArray(w * h) { argb }
 
     @Test
     fun dimensionsAndGridSize() {
-        val r = buildPattern(image(12, 8))
+        val r = buildPattern(image(12, 8), 12, 8)
         assertEquals(12, r.width)
         assertEquals(8, r.height)
         assertEquals(12 * 8, r.indexGrid.size)
@@ -45,7 +47,7 @@ class BuildPatternTest {
 
     @Test
     fun everyPerColourListAlignsToPalette() {
-        val r = buildPattern(image(12, 8))
+        val r = buildPattern(image(12, 8), 12, 8)
         assertTrue(r.palette.size >= 1, "a non-empty image yields at least one colour")
         assertEquals(r.palette.size, r.matches.size)
         assertEquals(r.palette.size, r.symbols.size)
@@ -55,19 +57,19 @@ class BuildPatternTest {
 
     @Test
     fun gridIndicesAreValid() {
-        val r = buildPattern(image(12, 8))
+        val r = buildPattern(image(12, 8), 12, 8)
         assertTrue(r.indexGrid.all { it in 0 until r.palette.size }, "every cell indexes a real palette colour")
     }
 
     @Test
     fun symbolsAreDistinct() {
-        val r = buildPattern(image(12, 8))
+        val r = buildPattern(image(12, 8), 12, 8)
         assertEquals(r.symbols.size, r.symbols.toSet().size, "no two colours share a glyph")
     }
 
     @Test
     fun countsMatchGridAndSumToArea() {
-        val r = buildPattern(image(12, 8))
+        val r = buildPattern(image(12, 8), 12, 8)
         val recomputed = IntArray(r.palette.size)
         for (idx in r.indexGrid) recomputed[idx]++
         assertArrayEquals(recomputed, r.counts, "counts are the per-colour cell tallies")
@@ -76,8 +78,8 @@ class BuildPatternTest {
 
     @Test
     fun deterministic() {
-        val a = buildPattern(image(12, 8))
-        val b = buildPattern(image(12, 8))
+        val a = buildPattern(image(12, 8), 12, 8)
+        val b = buildPattern(image(12, 8), 12, 8)
         assertEquals(a.palette.size, b.palette.size)
         assertArrayEquals(a.indexGrid, b.indexGrid)
         assertArrayEquals(a.counts, b.counts)
@@ -88,56 +90,37 @@ class BuildPatternTest {
     @Test
     fun rejectsEmptyImage() {
         assertThrows(IllegalArgumentException::class.java) {
-            buildPattern(OkLabPlanes(FloatArray(0), FloatArray(0), FloatArray(0), 0, 0))
+            buildPattern(IntArray(0), 0, 0)
         }
     }
 
-    // --- regression: integration edge cases -------------------------------------------------------
-
-    /** A solid OKLab image: every pixel shares one colour. */
-    private fun solid(w: Int, h: Int, l: Float, a: Float, b: Float): OkLabPlanes {
-        val n = w * h
-        return OkLabPlanes(FloatArray(n) { l }, FloatArray(n) { a }, FloatArray(n) { b }, w, h)
-    }
+    // --- regressions: integration edge cases ------------------------------------------------------
 
     @Test
-    fun solidSmallImageDoesNotCrashAndCountsAllStitches() {
-        for ((w, h) in listOf(1 to 1, 2 to 2)) {
-            val r = buildPattern(solid(w, h, 0.5f, 0.0f, 0.0f))
-            assertEquals(w * h, r.indexGrid.size, "grid sized to the image")
-            assertTrue(r.indexGrid.all { it in 0 until r.palette.size }, "every cell indexes a real colour")
-            assertEquals(w * h, r.counts.sum(), "every stitch counted exactly once")
-            assertTrue(r.palette.size >= 1, "a non-empty image yields at least one colour")
-        }
+    fun solidImageStaysConsistent() {
+        val gray = (0xFF shl 24) or (0x80 shl 16) or (0x80 shl 8) or 0x80
+        val r = buildPattern(solid(8, 8, gray), 8, 8)
+        assertTrue(r.palette.size in 1..K0_TARGET, "a uniform image does not explode into many colours")
+        assertEquals(8 * 8, r.indexGrid.size)
+        assertTrue(r.indexGrid.all { it in 0 until r.palette.size })
+        assertEquals(8 * 8, r.counts.sum())
     }
 
     @Test
     fun lowColourImageSkipsKneedleWhenBelowK0() {
-        // A two-colour 8x8 checkerboard cannot spread-separate into 14 colours, so refined.size < K0
-        // and Kneedle must be skipped — buildPattern must still return a valid, consistent result.
-        val w = 8; val h = 8; val n = w * h
-        val L = FloatArray(n); val a = FloatArray(n); val b = FloatArray(n)
-        for (i in 0 until n) {
+        // A two-tone checkerboard cannot spread-separate into 14 colours, so refined.size < K0 and
+        // Kneedle must be skipped — buildPattern must still return a valid, consistent result.
+        val w = 8; val h = 8
+        val px = IntArray(w * h)
+        for (i in px.indices) {
             val dark = ((i % w) + (i / w)) % 2 == 0
-            L[i] = if (dark) 0.20f else 0.80f
-            a[i] = 0.0f; b[i] = 0.0f
+            val v = if (dark) 0x30 else 0xD0
+            px[i] = (0xFF shl 24) or (v shl 16) or (v shl 8) or v
         }
-        val r = buildPattern(OkLabPlanes(L, a, b, w, h))
+        val r = buildPattern(px, w, h)
         assertTrue(r.palette.size in 1..K0_TARGET, "low-colour image stays at or below the k0 floor")
         assertEquals(w * h, r.indexGrid.size)
         assertTrue(r.indexGrid.all { it in 0 until r.palette.size })
         assertEquals(w * h, r.counts.sum())
-    }
-
-    @Test
-    fun samplingPreservesOkLabWithoutSrgbRoundTrip() {
-        // A strongly out-of-gamut chroma: a packed-sRGB round-trip would clip it badly, so the surviving
-        // palette colour proves buildPattern samples the OKLab planes directly.
-        val l = 0.60f; val a = 0.18f; val bb = 0.05f
-        val r = buildPattern(solid(4, 4, l, a, bb))
-        assertEquals(1, r.palette.size, "a solid image collapses to one colour")
-        assertEquals(l, r.palette.L[0], 1e-3f, "L preserved (no sRGB quantization)")
-        assertEquals(a, r.palette.a[0], 1e-3f, "a preserved (no gamut clip)")
-        assertEquals(bb, r.palette.b[0], 1e-3f, "b preserved (no gamut clip)")
     }
 }

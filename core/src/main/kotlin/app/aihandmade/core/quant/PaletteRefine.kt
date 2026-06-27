@@ -3,6 +3,7 @@ package app.aihandmade.core.quant
 import app.aihandmade.core.color.Lab
 import app.aihandmade.core.color.OkLab
 import app.aihandmade.core.color.deltaE2000
+import app.aihandmade.core.color.deltaOk
 import app.aihandmade.core.color.deltaSqOk
 import app.aihandmade.core.color.toLab
 import app.aihandmade.core.color.toLinearRgb
@@ -51,6 +52,18 @@ fun refinePalette(samples: SampleSet, palette: Palette, passes: Int = REFINE_PAS
             val candB = samples.b[candIdx]
 
             if (candL == palL[c] && candA == palA[c] && candB == palB[c]) continue
+
+            val candOk = OkLab(candL, candA, candB)
+            val currOk = OkLab(palL[c], palA[c], palB[c])
+            var candCost = 0f
+            var currCost = 0f
+            for (i in cluster) {
+                val si = OkLab(samples.L[i], samples.a[i], samples.b[i])
+                val w = samples.weight[i]
+                candCost += w * deltaOk(si, candOk)
+                currCost += w * deltaOk(si, currOk)
+            }
+            if (candCost > currCost) continue
 
             val candLab = OkLab(candL, candA, candB).toLinearRgb().toLab()
 

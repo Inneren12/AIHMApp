@@ -20,7 +20,8 @@ import org.junit.jupiter.api.Test
  * keeps every pair >= S_MIN in CIEDE2000. Anchors never move; size never changes; error never rises.
  *
  * Invariants pinned here: passes=0 no-op; anchors fixed; size preserved; whole palette >= S_MIN;
- * residual importance does not increase; moved colours are real samples; determinism; plus a concrete
+ * residual importance does not increase (even when a non-sample colour beats every sample medoid);
+ * moved colours are real samples; determinism; plus a concrete
  * "move an off-centre colour to its cluster medoid" scenario.
  */
 class RefinePaletteTest {
@@ -83,6 +84,28 @@ class RefinePaletteTest {
         val out = refinePalette(s, p, passes = 3)
         assertTrue(residual(s, out).impTotal <= residual(s, p).impTotal + 1e-9,
             "refinement must not increase residual importance")
+    }
+
+    @Test
+    fun centroidColourDoesNotMoveToWorseMedoid() {
+        // A non-sample colour at the centroid of a symmetric cluster represents that cluster better
+        // than ANY single sample (every vertex-medoid has higher total weighted distance). The error
+        // gate must therefore reject the medoid move and leave the colour in place.
+        val l0 = 0.6f
+        val s = SampleSet(
+            IntArray(3) { it },
+            floatArrayOf(l0, l0, l0),
+            floatArrayOf(0f, -0.0866f, 0.0866f),
+            floatArrayOf(0.1f, -0.05f, -0.05f),
+            floatArrayOf(1f, 1f, 1f),
+            3, 1
+        )
+        val p = Palette(floatArrayOf(0.05f, 0.95f, l0), floatArrayOf(0f, 0f, 0f), floatArrayOf(0f, 0f, 0f), anchorCount = 2)
+        val out = refinePalette(s, p, passes = 2)
+        assertEquals(l0, out.L[2], 0f, "centroid colour must not move to a worse vertex medoid")
+        assertEquals(0f, out.a[2], 0f); assertEquals(0f, out.b[2], 0f)
+        assertTrue(residual(s, out).impTotal <= residual(s, p).impTotal + 1e-9,
+            "rejecting the worse medoid keeps residual flat")
     }
 
     @Test

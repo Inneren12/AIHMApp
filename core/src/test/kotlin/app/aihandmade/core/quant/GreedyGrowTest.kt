@@ -152,5 +152,6 @@ class GreedyGrowTest {
         assertThrows(IllegalArgumentException::class.java) { greedyGrow(s, emptyInit, kTry = 1) }
         assertThrows(IllegalArgumentException::class.java) { greedyGrow(s, init, kTry = -1) }
         assertThrows(IllegalArgumentException::class.java) { greedyGrow(s, init, kTry = 1, clusterMin = 0) }
+        assertThrows(IllegalArgumentException::class.java) { greedyGrow(s, init, kTry = 1, binRadius = -1) }
     }
 }

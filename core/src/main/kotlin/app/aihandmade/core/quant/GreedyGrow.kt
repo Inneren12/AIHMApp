@@ -19,8 +19,9 @@ const val CLUSTER_MIN = 8
  * pairwise [S_MIN] separation of the final palette is **only guaranteed** when [init] already
  * satisfies that separation internally — the function does not validate the init palette's spread.
  *
- * Bins whose cluster is smaller than [clusterMin], or whose medoid fails the spread gate, are
- * excluded permanently so the loop terminates without re-selecting the same bin.
+ * When the selected bin's cluster is smaller than [clusterMin], or its medoid fails the spread
+ * gate, that specific bin is permanently added to an exclusion set so the loop never re-selects
+ * it. Only the selected bin itself is excluded; neighbouring bins in the same cluster are not.
  *
  * @param samples  non-empty set of OKLab samples with importance weights
  * @param init     starting palette (carried through unchanged as a prefix); must be non-empty
@@ -39,6 +40,7 @@ fun greedyGrow(
     require(init.size >= 1) { "init palette must not be empty" }
     require(kTry >= 0) { "kTry must be >= 0" }
     require(clusterMin >= 1) { "clusterMin must be >= 1" }
+    require(binRadius >= 0) { "binRadius must be >= 0" }
 
     if (kTry == 0) return init
 

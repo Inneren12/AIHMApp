@@ -1,0 +1,51 @@
+package app.aihandmade.core.quant
+
+import app.aihandmade.core.color.OkLab
+import app.aihandmade.core.color.Srgb
+import app.aihandmade.core.color.deltaE2000
+import app.aihandmade.core.color.toLab
+import app.aihandmade.core.color.toLinearRgb
+import app.aihandmade.core.color.toOkLab as srgbToOkLab
+
+/**
+ * Re-exports core/color's `Srgb -> OkLab` conversion into this package. Pure delegation — no colour
+ * maths lives here; the kernels stay in core/color. It exists so the `Srgb -> OkLab -> linear -> Lab`
+ * thread pipeline reads naturally from the `quant` package.
+ */
+fun Srgb.toOkLab(): OkLab = srgbToOkLab()
+
+/** A DMC Cotton floss colour. rgb is opaque 0xRRGGBB. */
+data class DmcThread(val code: String, val name: String, val rgb: Int)
+
+/** The nearest thread for one palette colour. */
+data class DmcMatch(val paletteIndex: Int, val thread: DmcThread, val deltaE: Double)
+
+/**
+ * Map each palette colour to the nearest DMC Cotton floss colour by **CIEDE2000 on CIE-Lab** — the
+ * final perceptual "which real thread looks closest" decision (single thread; blends deferred).
+ *
+ * Both sides convert to CIE-Lab through core/color only: a thread's opaque rgb goes
+ * `Srgb -> OkLab -> linear -> Lab`; a palette colour goes `OkLab -> linear -> Lab`. The thread Labs
+ * are precomputed once and reused across every palette colour (palette x catalogue is tiny here).
+ *
+ * Deterministic: for each palette colour the result is the `argmin` of [deltaE2000] over the
+ * catalogue, with ties resolved to the smallest catalogue index. Different palette colours may map
+ * to the same thread; distinct assignment is a later concern.
+ */
+fun matchPaletteToDmc(palette: Palette, catalog: List<DmcThread> = DMC_CATALOG): List<DmcMatch> {
+    require(palette.size >= 1) { "palette must have at least one colour" }
+    require(catalog.isNotEmpty()) { "catalog must not be empty" }
+
+    val threadLabs = catalog.map { Srgb(0xFF000000.toInt() or it.rgb).toOkLab().toLinearRgb().toLab() }
+
+    return List(palette.size) { i ->
+        val palLab = OkLab(palette.L[i], palette.a[i], palette.b[i]).toLinearRgb().toLab()
+        var best = 0
+        var bestDe = deltaE2000(palLab, threadLabs[0])
+        for (j in 1 until threadLabs.size) {
+            val d = deltaE2000(palLab, threadLabs[j])
+            if (d < bestDe) { bestDe = d; best = j }
+        }
+        DmcMatch(i, catalog[best], bestDe)
+    }
+}

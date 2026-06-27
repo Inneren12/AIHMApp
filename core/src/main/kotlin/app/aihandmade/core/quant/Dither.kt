@@ -4,38 +4,14 @@ import app.aihandmade.core.color.OkLab
 import app.aihandmade.core.color.OkLabPlanes
 import app.aihandmade.core.color.deltaSqOk
 
-fun ditherFloydSteinberg(image: OkLabPlanes, width: Int, height: Int, palette: Palette): IntArray {
-    require(width >= 1) { "width must be >= 1" }
-    require(height >= 1) { "height must be >= 1" }
-
-    val sizeLong = width.toLong() * height.toLong()
-    require(sizeLong <= Int.MAX_VALUE) { "image size too large" }
-    val size = sizeLong.toInt()
-
-    require(image.L.size == size) { "image size must equal width * height" }
-    require(image.width == width && image.height == height) {
-        "image dimensions must match width/height"
-    }
+fun ditherFloydSteinberg(image: OkLabPlanes, palette: Palette): IntArray {
     require(palette.size >= 1) { "palette must not be empty" }
+    val width = image.width
+    val height = image.height
+    val out = IntArray(image.L.size)
 
-    for (i in 0 until size) {
-        require(image.L[i].isFinite() && image.a[i].isFinite() && image.b[i].isFinite()) {
-            "image OKLab coordinates must be finite"
-        }
-    }
-    for (c in 0 until palette.size) {
-        require(palette.L[c].isFinite() && palette.a[c].isFinite() && palette.b[c].isFinite()) {
-            "palette OKLab coordinates must be finite"
-        }
-    }
-
-    val out = IntArray(size)
-    var curL = FloatArray(width)
-    var curA = FloatArray(width)
-    var curB = FloatArray(width)
-    var nextL = FloatArray(width)
-    var nextA = FloatArray(width)
-    var nextB = FloatArray(width)
+    var curL = FloatArray(width); var curA = FloatArray(width); var curB = FloatArray(width)
+    var nextL = FloatArray(width); var nextA = FloatArray(width); var nextB = FloatArray(width)
 
     for (y in 0 until height) {
         for (x in 0 until width) {
@@ -56,24 +32,10 @@ fun ditherFloydSteinberg(image: OkLabPlanes, width: Int, height: Int, palette: P
             val ea = a - palette.a[best]
             val eb = b - palette.b[best]
 
-            if (x + 1 < width) {
-                curL[x + 1] += eL * 7f / 16f
-                curA[x + 1] += ea * 7f / 16f
-                curB[x + 1] += eb * 7f / 16f
-            }
-            if (x - 1 >= 0) {
-                nextL[x - 1] += eL * 3f / 16f
-                nextA[x - 1] += ea * 3f / 16f
-                nextB[x - 1] += eb * 3f / 16f
-            }
-            nextL[x] += eL * 5f / 16f
-            nextA[x] += ea * 5f / 16f
-            nextB[x] += eb * 5f / 16f
-            if (x + 1 < width) {
-                nextL[x + 1] += eL * 1f / 16f
-                nextA[x + 1] += ea * 1f / 16f
-                nextB[x + 1] += eb * 1f / 16f
-            }
+            if (x + 1 < width) { curL[x + 1] += eL * 7f / 16f; curA[x + 1] += ea * 7f / 16f; curB[x + 1] += eb * 7f / 16f }
+            if (x - 1 >= 0) { nextL[x - 1] += eL * 3f / 16f; nextA[x - 1] += ea * 3f / 16f; nextB[x - 1] += eb * 3f / 16f }
+            nextL[x] += eL * 5f / 16f; nextA[x] += ea * 5f / 16f; nextB[x] += eb * 5f / 16f
+            if (x + 1 < width) { nextL[x + 1] += eL * 1f / 16f; nextA[x + 1] += ea * 1f / 16f; nextB[x + 1] += eb * 1f / 16f }
         }
         val tmpL = curL; curL = nextL; nextL = tmpL
         val tmpA = curA; curA = nextA; nextA = tmpA

@@ -29,7 +29,14 @@ class DitherTest {
     private val blackWhite =
         Palette(floatArrayOf(0f, 1f), floatArrayOf(0f, 0f), floatArrayOf(0f, 0f), anchorCount = 0)
 
-    private fun planes(L: FloatArray) = OkLabPlanes(L, FloatArray(L.size) { 0f }, FloatArray(L.size) { 0f })
+    private fun planes(L: FloatArray, width: Int, height: Int) =
+        OkLabPlanes(
+            L,
+            FloatArray(L.size) { 0f },
+            FloatArray(L.size) { 0f },
+            width,
+            height,
+        )
 
     private fun plainNearest(img: OkLabPlanes, palette: Palette): IntArray = IntArray(img.L.size) { idx ->
         var best = 0
@@ -45,7 +52,7 @@ class DitherTest {
     @Test
     fun exactPaletteMatchDoesNotDither() {
         // pixels are exactly palette colours -> zero error everywhere -> output equals plain nearest.
-        val img = planes(floatArrayOf(0f, 1f, 0f, 1f))
+        val img = planes(floatArrayOf(0f, 1f, 0f, 1f), 2, 2)
         val out = ditherFloydSteinberg(img, 2, 2, blackWhite)
         assertArrayEquals(intArrayOf(0, 1, 0, 1), out)
         assertArrayEquals(plainNearest(img, blackWhite), out)
@@ -53,7 +60,7 @@ class DitherTest {
 
     @Test
     fun concrete2x2MidGray() {
-        val out = ditherFloydSteinberg(planes(floatArrayOf(0.5f, 0.5f, 0.5f, 0.5f)), 2, 2, blackWhite)
+        val out = ditherFloydSteinberg(planes(floatArrayOf(0.5f, 0.5f, 0.5f, 0.5f), 2, 2), 2, 2, blackWhite)
         assertArrayEquals(intArrayOf(0, 1, 1, 0), out)
     }
 
@@ -61,7 +68,7 @@ class DitherTest {
     fun rightDiffusionFlipsNeighbour() {
         // px0=0.6 -> white(1), residual -0.4 diffuses right; px1=0.55 alone would be white, but the
         // pushed error drives it to black(0). Plain nearest is [1,1]; Floyd-Steinberg is [1,0].
-        val img = planes(floatArrayOf(0.6f, 0.55f))
+        val img = planes(floatArrayOf(0.6f, 0.55f), 2, 1)
         val out = ditherFloydSteinberg(img, 2, 1, blackWhite)
         assertArrayEquals(intArrayOf(1, 0), out)
         assertArrayEquals(intArrayOf(1, 1), plainNearest(img, blackWhite))
@@ -69,7 +76,7 @@ class DitherTest {
 
     @Test
     fun flatMidGrayDithersAndPreservesAverage() {
-        val out = ditherFloydSteinberg(planes(FloatArray(16) { 0.5f }), 4, 4, blackWhite)
+        val out = ditherFloydSteinberg(planes(FloatArray(16) { 0.5f }, 4, 4), 4, 4, blackWhite)
         assertTrue(out.any { it == 0 } && out.any { it == 1 }, "a flat midtone must dither, not flatten")
         assertEquals(8, out.count { it == 1 }, "FS preserves the average: half the cells pick white")
     }
@@ -78,20 +85,20 @@ class DitherTest {
     fun outputIndicesAreValid() {
         val three =
             Palette(floatArrayOf(0f, 0.5f, 1f), floatArrayOf(0f, 0f, 0f), floatArrayOf(0f, 0f, 0f), anchorCount = 0)
-        val out = ditherFloydSteinberg(planes(FloatArray(16) { it / 15f }), 4, 4, three)
+        val out = ditherFloydSteinberg(planes(FloatArray(16) { it / 15f }, 4, 4), 4, 4, three)
         assertEquals(16, out.size)
         assertTrue(out.all { it in 0 until three.size })
     }
 
     @Test
     fun deterministic() {
-        val img = planes(FloatArray(16) { 0.5f })
+        val img = planes(FloatArray(16) { 0.5f }, 4, 4)
         assertArrayEquals(ditherFloydSteinberg(img, 4, 4, blackWhite), ditherFloydSteinberg(img, 4, 4, blackWhite))
     }
 
     @Test
     fun invalidInputsThrow() {
-        val img = planes(FloatArray(4) { 0.5f })
+        val img = planes(FloatArray(4) { 0.5f }, 2, 2)
         assertThrows(IllegalArgumentException::class.java) { ditherFloydSteinberg(img, 0, 2, blackWhite) }
         assertThrows(IllegalArgumentException::class.java) { ditherFloydSteinberg(img, 2, 3, blackWhite) }
         val emptyP = Palette(FloatArray(0), FloatArray(0), FloatArray(0), 0)

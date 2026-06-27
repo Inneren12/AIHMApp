@@ -99,30 +99,21 @@ class DitherEdgeTest {
         assertThrows(IllegalArgumentException::class.java) { ditherFloydSteinberg(img1(), 1, 1, p) }
     }
 
-    // --- geometry note -----------------------------------------------------------------------
-    //
-    // Item 2 of the review asks for: require(image.width == width && image.height == height).
-    //
-    // This check cannot be added without breaking DitherTest (an immutable contract test).
-    // DitherTest's `planes(L)` helper uses the 3-arg OkLabPlanes secondary constructor which
-    // stores (width=L.size, height=1). DitherTest then passes explicit width/height that don't
-    // match those stored values (e.g., planes(4 pixels) called with 2×2).
-    //
-    // To add the geometry check, either:
-    //   (a) modify DitherTest to pass a properly-dimensioned OkLabPlanes, OR
-    //   (b) remove the secondary constructor and create a test-only factory that accepts explicit
-    //       dimensions.
-    // Until one of those is done, the function validates only the flat pixel count (L.size ==
-    // width*height), not the 2D geometry stored in OkLabPlanes.
-    //
-    // The test below documents current accepted behaviour.
+    // --- geometry validation -----------------------------------------------------------------
 
     @Test
-    fun samePixelCountDifferentStoredGeometry_currentlyAccepted() {
-        // Stored as 4×1, called as 2×2: same pixel count, different 2D geometry.
-        // Currently not rejected — see geometry note above.
-        val img = OkLabPlanes(FloatArray(4) { 0.5f }, FloatArray(4) { 0f }, FloatArray(4) { 0f }, 4, 1)
-        val out = ditherFloydSteinberg(img, 2, 2, bw)
-        assertTrue(out.size == 4 && out.all { it in 0..1 })
+    fun samePixelCountDifferentStoredGeometryThrows() {
+        // Stored as 4×1, called as 2×2: same total pixel count but different 2D layout.
+        // Floyd-Steinberg error diffusion depends on geometry, so this must be rejected.
+        val img = OkLabPlanes(
+            FloatArray(4) { 0.5f },
+            FloatArray(4) { 0f },
+            FloatArray(4) { 0f },
+            4,
+            1,
+        )
+        assertThrows(IllegalArgumentException::class.java) {
+            ditherFloydSteinberg(img, 2, 2, bw)
+        }
     }
 }

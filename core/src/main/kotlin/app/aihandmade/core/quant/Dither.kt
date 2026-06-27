@@ -13,6 +13,9 @@ fun ditherFloydSteinberg(image: OkLabPlanes, width: Int, height: Int, palette: P
     val size = sizeLong.toInt()
 
     require(image.L.size == size) { "image size must equal width * height" }
+    require(image.width == width && image.height == height) {
+        "image dimensions must match width/height"
+    }
     require(palette.size >= 1) { "palette must not be empty" }
 
     for (i in 0 until size) {

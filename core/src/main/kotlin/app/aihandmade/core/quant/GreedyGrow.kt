@@ -7,6 +7,27 @@ import app.aihandmade.core.color.toLinearRgb
 
 const val CLUSTER_MIN = 8
 
+/**
+ * Grows [init] by up to [kTry] colours chosen greedily from [samples].
+ *
+ * Each candidate medoid is accepted only if its CIEDE2000 distance to every colour already in the
+ * palette is >= [S_MIN] (the same threshold used by `initPalette`). This gate is evaluated over
+ * the growing palette, so every newly added colour is at least [S_MIN] away from all previously
+ * accepted colours.
+ *
+ * The initial palette is preserved verbatim as a prefix of the result. Consequently, global
+ * pairwise [S_MIN] separation of the final palette is **only guaranteed** when [init] already
+ * satisfies that separation internally — the function does not validate the init palette's spread.
+ *
+ * Bins whose cluster is smaller than [clusterMin], or whose medoid fails the spread gate, are
+ * excluded permanently so the loop terminates without re-selecting the same bin.
+ *
+ * @param samples  non-empty set of OKLab samples with importance weights
+ * @param init     starting palette (carried through unchanged as a prefix); must be non-empty
+ * @param kTry     maximum number of colours to add; 0 returns [init] immediately
+ * @param clusterMin minimum cluster size (in samples) for a bin to spawn a colour
+ * @param binRadius  Chebyshev radius around the selected bin used by [collectCluster]
+ */
 fun greedyGrow(
     samples: SampleSet,
     init: Palette,

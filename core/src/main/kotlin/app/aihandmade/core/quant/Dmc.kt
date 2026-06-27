@@ -24,27 +24,10 @@ data class DmcMatch(val paletteIndex: Int, val thread: DmcThread, val deltaE: Do
  * Deterministic: for each palette colour the result is the `argmin` of [deltaE2000] over the
  * catalogue, with ties resolved to the smallest catalogue index. Different palette colours may map
  * to the same thread; distinct assignment is a later concern.
- *
- * Inputs are validated up front: the palette must be non-empty with finite OKLab coordinates, and
- * the catalogue must be non-empty with well-formed threads (non-blank code/name, opaque `0xRRGGBB`
- * rgb). This fails fast instead of letting NaN/Infinity poison the Lab/deltaE maths (silently
- * returning `catalog[0]`) or letting stray alpha/high bits be OR-ed into the ARGB value.
  */
 fun matchPaletteToDmc(palette: Palette, catalog: List<DmcThread> = DMC_CATALOG): List<DmcMatch> {
     require(palette.size >= 1) { "palette must have at least one colour" }
     require(catalog.isNotEmpty()) { "catalog must not be empty" }
-
-    for (i in 0 until palette.size) {
-        require(palette.L[i].isFinite() && palette.a[i].isFinite() && palette.b[i].isFinite()) {
-            "palette OKLab coordinates must be finite"
-        }
-    }
-
-    for (t in catalog) {
-        require(t.code.isNotBlank()) { "thread code must not be blank" }
-        require(t.name.isNotBlank()) { "thread name must not be blank" }
-        require(t.rgb in 0x000000..0xFFFFFF) { "thread rgb must be 0xRRGGBB" }
-    }
 
     val threadLabs = catalog.map {
         val argb = 0xFF000000.toInt() or it.rgb

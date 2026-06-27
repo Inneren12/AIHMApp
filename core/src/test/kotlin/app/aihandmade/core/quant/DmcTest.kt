@@ -22,8 +22,8 @@ import org.junit.jupiter.api.Test
  * palette colour, the thread with the smallest CIEDE2000 (ties -> smallest catalogue index).
  *
  * Pinned here: a palette built from the catalogue maps back to itself (dE ~ 0); arbitrary matches equal
- * the independently-recomputed CIEDE2000 argmin; determinism; the real DMC_CATALOG is loaded (454
- * threads incl. black 310 and White); empty inputs throw.
+ * the independently-recomputed CIEDE2000 argmin; ties resolve to the smallest catalogue index;
+ * determinism; the real DMC_CATALOG is loaded (454 threads incl. black 310 and White); empty inputs throw.
  */
 class DmcTest {
 
@@ -87,6 +87,18 @@ class DmcTest {
         val pal = paletteOf(listOf(okLabOf(0xCC2020), okLabOf(0x3060A0), okLabOf(0xC0C0C0), okLabOf(0x404040)))
         val codes = matchPaletteToDmc(pal, cat).map { it.thread.code }
         assertEquals(listOf("RED", "BLU", "WHT", "BLK"), codes)
+    }
+
+    @Test
+    fun tieBreaksToSmallestCatalogueIndex() {
+        // two threads with identical rgb -> identical dE; the smallest catalogue index must win.
+        val dup = listOf(
+            DmcThread("DUP_A", "Red A", 0xFF0000),
+            DmcThread("DUP_B", "Red B", 0xFF0000),
+            DmcThread("BLU", "Blue", 0x0000FF),
+        )
+        val pal = paletteOf(listOf(okLabOf(0xFF0000)))
+        assertEquals("DUP_A", matchPaletteToDmc(pal, dup).first().thread.code, "tie must resolve to smallest index")
     }
 
     @Test

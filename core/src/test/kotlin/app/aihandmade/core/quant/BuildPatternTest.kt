@@ -91,4 +91,53 @@ class BuildPatternTest {
             buildPattern(OkLabPlanes(FloatArray(0), FloatArray(0), FloatArray(0), 0, 0))
         }
     }
+
+    // --- regression: integration edge cases -------------------------------------------------------
+
+    /** A solid OKLab image: every pixel shares one colour. */
+    private fun solid(w: Int, h: Int, l: Float, a: Float, b: Float): OkLabPlanes {
+        val n = w * h
+        return OkLabPlanes(FloatArray(n) { l }, FloatArray(n) { a }, FloatArray(n) { b }, w, h)
+    }
+
+    @Test
+    fun solidSmallImageDoesNotCrashAndCountsAllStitches() {
+        for ((w, h) in listOf(1 to 1, 2 to 2)) {
+            val r = buildPattern(solid(w, h, 0.5f, 0.0f, 0.0f))
+            assertEquals(w * h, r.indexGrid.size, "grid sized to the image")
+            assertTrue(r.indexGrid.all { it in 0 until r.palette.size }, "every cell indexes a real colour")
+            assertEquals(w * h, r.counts.sum(), "every stitch counted exactly once")
+            assertTrue(r.palette.size >= 1, "a non-empty image yields at least one colour")
+        }
+    }
+
+    @Test
+    fun lowColourImageSkipsKneedleWhenBelowK0() {
+        // A two-colour 8x8 checkerboard cannot spread-separate into 14 colours, so refined.size < K0
+        // and Kneedle must be skipped — buildPattern must still return a valid, consistent result.
+        val w = 8; val h = 8; val n = w * h
+        val L = FloatArray(n); val a = FloatArray(n); val b = FloatArray(n)
+        for (i in 0 until n) {
+            val dark = ((i % w) + (i / w)) % 2 == 0
+            L[i] = if (dark) 0.20f else 0.80f
+            a[i] = 0.0f; b[i] = 0.0f
+        }
+        val r = buildPattern(OkLabPlanes(L, a, b, w, h))
+        assertTrue(r.palette.size in 1..K0_TARGET, "low-colour image stays at or below the k0 floor")
+        assertEquals(w * h, r.indexGrid.size)
+        assertTrue(r.indexGrid.all { it in 0 until r.palette.size })
+        assertEquals(w * h, r.counts.sum())
+    }
+
+    @Test
+    fun samplingPreservesOkLabWithoutSrgbRoundTrip() {
+        // A strongly out-of-gamut chroma: a packed-sRGB round-trip would clip it badly, so the surviving
+        // palette colour proves buildPattern samples the OKLab planes directly.
+        val l = 0.60f; val a = 0.18f; val bb = 0.05f
+        val r = buildPattern(solid(4, 4, l, a, bb))
+        assertEquals(1, r.palette.size, "a solid image collapses to one colour")
+        assertEquals(l, r.palette.L[0], 1e-3f, "L preserved (no sRGB quantization)")
+        assertEquals(a, r.palette.a[0], 1e-3f, "a preserved (no gamut clip)")
+        assertEquals(bb, r.palette.b[0], 1e-3f, "b preserved (no gamut clip)")
+    }
 }

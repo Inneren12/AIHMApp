@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Test
  *
  * Pinned here: de95 equals an independent Lab-CIEDE2000 p95 (this is the correctness fix — the metric
  * must NOT be CIEDE2000 on OkLab coordinates); de95 is monotone non-increasing; F telescopes to
- * de95[k0]-de95[k]; D == y-x; the knee / early_quality / k_max picks on concrete curves; determinism.
+ * de95[k0]-de95[k]; D == y-x; the knee / early_quality / low_gain / k_max picks on concrete curves; determinism.
  */
 class KneedleTest {
 
@@ -134,6 +134,25 @@ class KneedleTest {
         val res = selectK(uniformSamples(), uniformPalette(), k0 = 1, kTry = 3)
         assertEquals(3, res.kStar)
         assertEquals("k_max", res.reason)
+    }
+
+    @Test
+    fun picksLowGainAfterThreeRealLowGainSteps() {
+        // Gray samples spread in L (de95 stays well above target, so no early_quality) plus four
+        // useless high-chroma colours (zero gain). With no knee, low_gain must fire after THREE real
+        // low-gain additions (k=2,3,4) -> K*=4. Counting the synthetic gain=0 baseline row (k=1) would
+        // wrongly stop at K*=3.
+        val ls = FloatArray(10) { j -> 0.3f + 0.4f * (j / 9f) }
+        val s = samplesOf(ls)
+        val p = Palette(
+            floatArrayOf(0.5f, 0.5f, 0.5f, 0.5f, 0.5f),
+            floatArrayOf(0.0f, 0.3f, 0.31f, 0.32f, 0.33f),
+            floatArrayOf(0f, 0f, 0f, 0f, 0f),
+            anchorCount = 0
+        )
+        val res = selectK(s, p, k0 = 1, kTry = 5)
+        assertEquals("low_gain", res.reason)
+        assertEquals(4, res.kStar, "low_gain needs three REAL low-gain steps (k=2,3,4), not the baseline")
     }
 
     @Test

@@ -19,11 +19,6 @@ val SYMBOL_POOL: List<Char> = listOf(
 fun assignSymbols(palette: Palette): List<Char> {
     require(palette.size >= 1) { "palette must have at least one colour" }
     require(palette.size <= SYMBOL_POOL.size) { "palette larger than symbol pool" }
-    for (i in 0 until palette.size) {
-        require(palette.L[i].isFinite()) {
-            "palette lightness values must be finite"
-        }
-    }
 
     val order = (0 until palette.size).sortedWith(compareBy({ palette.L[it] }, { it }))
     val out = CharArray(palette.size)

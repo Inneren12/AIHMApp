@@ -2,6 +2,13 @@ package app.aihandmade.core.quant
 
 // DMC Cotton floss catalogue (454 colours). Generated from the brand RGB table.
 // rgb is 0xRRGGBB. Do not hand-edit; regenerate from the source palette JSON.
+//
+// Source / reproducibility: the entries are the published DMC Cotton floss colours (codes 150..3895
+// plus B5200, Ecru, White), each with the brand's nominal sRGB swatch packed as an opaque 0xRRGGBB
+// literal. This file is a flat data dump produced from that source palette table — it carries no
+// logic and is consumed only by matchPaletteToDmc in Dmc.kt. To update it (e.g. when DMC revises a
+// swatch or adds a colour), regenerate the whole list from the source palette JSON rather than
+// editing individual rows, so the table stays a faithful 1:1 mirror of the source.
 val DMC_CATALOG: List<DmcThread> = listOf(
     DmcThread("150", "Dusty Rose Ultra Very Dark", 0xB6114C),
     DmcThread("151", "Dusty Rose Very Light", 0xF8D0D8),

@@ -215,6 +215,8 @@ class OkLabPlanes(
     val L: FloatArray, val a: FloatArray, val b: FloatArray,
     val width: Int, val height: Int,
 ) {
+    constructor(L: FloatArray, a: FloatArray, b: FloatArray) : this(L, a, b, L.size, 1)
+
     val size: Int = checkedPlaneSize(width, height)
     init { require(L.size == size && a.size == size && b.size == size) { "plane size != width*height" } }
 }

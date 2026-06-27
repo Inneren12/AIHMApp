@@ -7,10 +7,26 @@ import app.aihandmade.core.color.deltaSqOk
 fun ditherFloydSteinberg(image: OkLabPlanes, width: Int, height: Int, palette: Palette): IntArray {
     require(width >= 1) { "width must be >= 1" }
     require(height >= 1) { "height must be >= 1" }
-    require(image.L.size == width * height) { "image size must equal width * height" }
+
+    val sizeLong = width.toLong() * height.toLong()
+    require(sizeLong <= Int.MAX_VALUE) { "image size too large" }
+    val size = sizeLong.toInt()
+
+    require(image.L.size == size) { "image size must equal width * height" }
     require(palette.size >= 1) { "palette must not be empty" }
 
-    val out = IntArray(width * height)
+    for (i in 0 until size) {
+        require(image.L[i].isFinite() && image.a[i].isFinite() && image.b[i].isFinite()) {
+            "image OKLab coordinates must be finite"
+        }
+    }
+    for (c in 0 until palette.size) {
+        require(palette.L[c].isFinite() && palette.a[c].isFinite() && palette.b[c].isFinite()) {
+            "palette OKLab coordinates must be finite"
+        }
+    }
+
+    val out = IntArray(size)
     var curL = FloatArray(width)
     var curA = FloatArray(width)
     var curB = FloatArray(width)

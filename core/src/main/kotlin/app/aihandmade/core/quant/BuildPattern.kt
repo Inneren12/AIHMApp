@@ -1,11 +1,11 @@
 package app.aihandmade.core.quant
 
-import app.aihandmade.core.color.OkLabPlanes
+import app.aihandmade.core.color.toOkLabPlanes
 
 /** Everything the chart, floss list and export need from one photo. The cross-module handoff object. */
 data class PatternResult(
-    val width: Int,                 // stitches across (== image.width)
-    val height: Int,                // stitches down  (== image.height)
+    val width: Int,                 // stitches across
+    val height: Int,                // stitches down
     val palette: Palette,           // the chosen colours (OKLab)
     val indexGrid: IntArray,        // size width*height, each value in 0 until palette.size
     val matches: List<DmcMatch>,    // size palette.size; matches[i] is colour i's nearest DMC thread
@@ -13,24 +13,36 @@ data class PatternResult(
     val counts: IntArray,           // size palette.size; counts[i] = stitches using colour i; sum == width*height
 )
 
-/** Auto-K colour ceiling: greedy growth grows the k0 floor up toward this before Kneedle scans [k0, K*]. */
+/** Auto-K colour ceiling: greedy grows the k0 floor up toward this before Kneedle scans [k0, K*]. */
 private const val K_MAX_AUTO = 64
 
 /**
- * Turn a prescaled working-space image into a full cross-stitch [PatternResult]: sample -> init ->
- * greedy -> refine -> Kneedle (auto K) -> dither -> DMC match -> symbolize -> counts.
+ * Turn a prescaled image (packed-ARGB sRGB pixels at the target stitch dimensions) into a full
+ * cross-stitch [PatternResult]: sample -> init -> greedy -> refine -> Kneedle (auto K) -> dither ->
+ * DMC match -> symbolize -> counts. Does not prescale or run the DecisionEngine (earlier steps).
+ * Auto K only (Kneedle picks K* >= k0 = 14); manual colour counts are a follow-up.
  *
- * The image is assumed to be in working space already at the target stitch dimensions (W×H): this
- * function does not prescale or run the DecisionEngine — those are earlier pipeline steps. Auto K
- * only (Kneedle picks K* ≥ k0 = 14); manual colour counts are a follow-up. Determinism is inherited
- * from the deterministic, ordered all-pixel sampling.
+ * Palette sampling and dithering both derive OKLab from the same packed sRGB pixels through the same
+ * core conversion path, so there is no sRGB round-trip and both stages see identical OKLab values.
  */
-fun buildPattern(image: OkLabPlanes, catalog: List<DmcThread> = DMC_CATALOG): PatternResult {
-    require(image.width >= 1 && image.height >= 1) { "image must be non-empty" }
+fun buildPattern(pixels: IntArray, width: Int, height: Int, catalog: List<DmcThread> = DMC_CATALOG): PatternResult {
+    require(width >= 1 && height >= 1) { "image must be non-empty" }
 
-    val samples = samplePlanes(image)
+    val sizeLong = width.toLong() * height.toLong()
+    require(sizeLong <= Int.MAX_VALUE) { "image size too large" }
+    val size = sizeLong.toInt()
+    require(pixels.size == size) { "pixels size must equal width * height" }
+
+    // Palette from the real importance-weighted sampler; dither planes from the SAME pixels via the
+    // SAME conversion samplePixels uses internally -> identical OKLab values, no sRGB round-trip.
+    val samples = samplePixels(pixels, width, height, targetSamples = size)
+    val planes = pixels.toOkLabPlanes(width, height)
+
+    // Auto-K can never outgrow the chart-glyph pool, or assignSymbols would have nothing to hand out.
+    val kCap = minOf(K_MAX_AUTO, SYMBOL_POOL.size)
+
     val p0 = initPalette(samples)
-    val grown = greedyGrow(samples, p0, kTry = (K_MAX_AUTO - p0.size).coerceAtLeast(0))
+    val grown = greedyGrow(samples, p0, kTry = (kCap - p0.size).coerceAtLeast(0))
     val refined = refinePalette(samples, grown)
 
     // Kneedle needs at least k0 colours to scan; below that, keep every refined colour.
@@ -46,29 +58,14 @@ fun buildPattern(image: OkLabPlanes, catalog: List<DmcThread> = DMC_CATALOG): Pa
         refined.L.copyOf(k), refined.a.copyOf(k), refined.b.copyOf(k),
         refined.anchorCount.coerceAtMost(k),
     )
+    require(palette.size <= SYMBOL_POOL.size) { "palette larger than symbol pool" }
 
-    val indexGrid = ditherFloydSteinberg(image, palette)
+    val indexGrid = ditherFloydSteinberg(planes, palette)
     val matches = matchPaletteToDmc(palette, catalog)
     val symbols = assignSymbols(palette)
 
     val counts = IntArray(palette.size)
     for (idx in indexGrid) counts[idx]++
 
-    return PatternResult(image.width, image.height, palette, indexGrid, matches, symbols, counts)
+    return PatternResult(width, height, palette, indexGrid, matches, symbols, counts)
 }
-
-/**
- * Every stitch pixel is a sample, taken straight from the working-space OKLab planes — no sRGB
- * round-trip, so palette construction sees the same values [ditherFloydSteinberg] later quantizes.
- * `index` is the row-major pixel order (ascending) and `weight` is uniform since each pixel counts once.
- */
-private fun samplePlanes(image: OkLabPlanes): SampleSet =
-    SampleSet(
-        index = IntArray(image.size) { it },
-        L = image.L.copyOf(),
-        a = image.a.copyOf(),
-        b = image.b.copyOf(),
-        weight = FloatArray(image.size) { 1f },
-        sourceWidth = image.width,
-        sourceHeight = image.height,
-    )

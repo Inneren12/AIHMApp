@@ -21,17 +21,28 @@ private const val K_MAX_AUTO = 64
  * cross-stitch [PatternResult]: sample -> init -> greedy -> refine -> Kneedle (auto K) -> dither ->
  * DMC match -> symbolize -> counts. Does not prescale or run the DecisionEngine (earlier steps).
  * Auto K only (Kneedle picks K* >= k0 = 14); manual colour counts are a follow-up.
+ *
+ * Palette sampling and dithering both derive OKLab from the same packed sRGB pixels through the same
+ * core conversion path, so there is no sRGB round-trip and both stages see identical OKLab values.
  */
 fun buildPattern(pixels: IntArray, width: Int, height: Int, catalog: List<DmcThread> = DMC_CATALOG): PatternResult {
     require(width >= 1 && height >= 1) { "image must be non-empty" }
 
+    val sizeLong = width.toLong() * height.toLong()
+    require(sizeLong <= Int.MAX_VALUE) { "image size too large" }
+    val size = sizeLong.toInt()
+    require(pixels.size == size) { "pixels size must equal width * height" }
+
     // Palette from the real importance-weighted sampler; dither planes from the SAME pixels via the
     // SAME conversion samplePixels uses internally -> identical OKLab values, no sRGB round-trip.
-    val samples = samplePixels(pixels, width, height, targetSamples = width * height)
+    val samples = samplePixels(pixels, width, height, targetSamples = size)
     val planes = pixels.toOkLabPlanes(width, height)
 
+    // Auto-K can never outgrow the chart-glyph pool, or assignSymbols would have nothing to hand out.
+    val kCap = minOf(K_MAX_AUTO, SYMBOL_POOL.size)
+
     val p0 = initPalette(samples)
-    val grown = greedyGrow(samples, p0, kTry = (K_MAX_AUTO - p0.size).coerceAtLeast(0))
+    val grown = greedyGrow(samples, p0, kTry = (kCap - p0.size).coerceAtLeast(0))
     val refined = refinePalette(samples, grown)
 
     // Kneedle needs at least k0 colours to scan; below that, keep every refined colour.
@@ -47,6 +58,7 @@ fun buildPattern(pixels: IntArray, width: Int, height: Int, catalog: List<DmcThr
         refined.L.copyOf(k), refined.a.copyOf(k), refined.b.copyOf(k),
         refined.anchorCount.coerceAtMost(k),
     )
+    require(palette.size <= SYMBOL_POOL.size) { "palette larger than symbol pool" }
 
     val indexGrid = ditherFloydSteinberg(planes, palette)
     val matches = matchPaletteToDmc(palette, catalog)

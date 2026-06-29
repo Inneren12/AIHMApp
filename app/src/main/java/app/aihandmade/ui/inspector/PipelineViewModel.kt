@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class PipelineViewModel(
     application: Application,
@@ -62,7 +63,12 @@ class PipelineViewModel(
                             megapixels = result.value.megapixels,
                         ),
                         errorMessage = null,
+                        pattern = null,
                     )
+                    val pattern = withContext(Dispatchers.Default) {
+                        runCatching { quantizeArtifactToPattern(artifactPath) }.getOrNull()
+                    }
+                    _uiState.value = _uiState.value.copy(pattern = pattern)
                 }
             } catch (throwable: Throwable) {
                 _uiState.value = ImportUiState(
@@ -101,6 +107,7 @@ data class ImportUiState(
     val isLoading: Boolean = false,
     val preview: ImportPreview? = null,
     val errorMessage: String? = null,
+    val pattern: PatternDebug? = null,
 )
 
 fun interface ImportExecutor {

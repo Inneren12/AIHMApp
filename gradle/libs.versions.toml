@@ -48,7 +48,8 @@ jackson-kotlin                   = { group = "com.fasterxml.jackson.module", nam
 androidx-test-core               = { group = "androidx.test",              name = "core",                        version.ref = "androidxTestCore" }
 robolectric                      = { group = "org.robolectric",            name = "robolectric",                 version.ref = "robolectric" }
 desugar-jdk-libs-nio             = { group = "com.android.tools",          name = "desugar_jdk_libs_nio",        version.ref = "desugarJdkLibsNio" }
-androidx-compose-ui-tooling      = { group = "androidx.compose.ui",        name = "ui-tooling",                  version.ref = "composeUi" }
+androidx-compose-ui-tooling         = { group = "androidx.compose.ui",        name = "ui-tooling",                  version.ref = "composeUi" }
+androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui",        name = "ui-tooling-preview",          version.ref = "composeUi" }
 junit-jupiter-api                = { group = "org.junit.jupiter",          name = "junit-jupiter-api",           version.ref = "junit-jupiter" }
 junit-jupiter-engine             = { group = "org.junit.jupiter",          name = "junit-jupiter-engine",        version.ref = "junit-jupiter" }
 kotlinx-serialization-json       = { group = "org.jetbrains.kotlinx",      name = "kotlinx-serialization-json",  version.ref = "kotlinxSerializationJson" }

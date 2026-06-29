@@ -2,8 +2,6 @@ package app.aihandmade.ui.inspector
 
 import android.graphics.BitmapFactory
 import app.aihandmade.core.analyze.DefaultAnalyzeService
-import app.aihandmade.core.color.OkLabPlanes
-import app.aihandmade.core.color.toOkLabPlanes
 import app.aihandmade.core.decision.DecisionInput
 import app.aihandmade.core.decision.rules.DecisionEngineImpl
 import app.aihandmade.core.image.RgbaImage
@@ -67,8 +65,8 @@ fun quantizeArtifactToPattern(artifactPath: String): PatternDebug? {
     val prepped = prescale(prepSrc, plan, masks = null)
     val stitched = scaleBox(prepped, plan.targetWidthStitches, plan.targetHeightStitches)
 
-    // 4) quantize the stitch-dim image via the OkLabPlanes path (no redundant ARGB→OKLab pass).
-    val result = buildPattern(stitched.toOkLabPlanes())
+    // 4) quantize the stitch-dim image.
+    val result = buildPattern(stitched.pixels, stitched.width, stitched.height)
     val swatches = (0 until result.palette.size).map { i ->
         val t = result.matches[i].thread
         PatternDebug.Swatch(
@@ -88,9 +86,6 @@ fun quantizeArtifactToPattern(artifactPath: String): PatternDebug? {
         swatches = swatches,
     )
 }
-
-/** Converts this [RgbaImage] to [OkLabPlanes] using the shared core ARGB→OKLab path. */
-internal fun RgbaImage.toOkLabPlanes(): OkLabPlanes = pixels.toOkLabPlanes(width, height)
 
 /** Downscale-to-longSide that never upscales (a small source is left as-is). */
 internal fun previewDims(w: Int, h: Int, longSide: Int): Pair<Int, Int> =

@@ -139,7 +139,7 @@ private fun InspectorContent(
                 }
             }
 
-            if (state.pattern == null && state.patternError == null) {
+            if (state.pattern == null && state.patternError == null && state.errorMessage == null) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),

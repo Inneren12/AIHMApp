@@ -3,6 +3,7 @@ package app.aihandmade.ui.inspector
 import android.app.Application
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import app.aihandmade.core.imports.ImportParams
@@ -64,11 +65,30 @@ class PipelineViewModel(
                         ),
                         errorMessage = null,
                         pattern = null,
+                        patternError = null,
                     )
-                    val pattern = withContext(Dispatchers.Default) {
-                        runCatching { quantizeArtifactToPattern(artifactPath) }.getOrNull()
+                    val patternResult = withContext(Dispatchers.Default) {
+                        runCatching { quantizeArtifactToPattern(artifactPath) }
                     }
-                    _uiState.value = _uiState.value.copy(pattern = pattern)
+                    _uiState.value = patternResult.fold(
+                        onSuccess = { result ->
+                            if (result != null) {
+                                _uiState.value.copy(pattern = result, patternError = null)
+                            } else {
+                                _uiState.value.copy(
+                                    pattern = null,
+                                    patternError = "Artifact could not be decoded (decodeFile returned null): $artifactPath",
+                                )
+                            }
+                        },
+                        onFailure = { t ->
+                            Log.e(TAG, "pattern pipeline failed", t)
+                            _uiState.value.copy(
+                                pattern = null,
+                                patternError = t::class.simpleName + ": " + (t.message ?: "no message"),
+                            )
+                        },
+                    )
                 }
             } catch (throwable: Throwable) {
                 _uiState.value = ImportUiState(
@@ -93,6 +113,7 @@ class PipelineViewModel(
 
     companion object {
         private const val DEFAULT_PROJECT_ID = "inspector"
+        private const val TAG = "PipelineViewModel"
     }
 }
 
@@ -108,6 +129,7 @@ data class ImportUiState(
     val preview: ImportPreview? = null,
     val errorMessage: String? = null,
     val pattern: PatternDebug? = null,
+    val patternError: String? = null,
 )
 
 fun interface ImportExecutor {

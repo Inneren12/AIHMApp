@@ -122,6 +122,16 @@ private fun InspectorContent(
 
             MetricsSection(preview = preview)
             state.pattern?.let { PatternSection(it) }
+            state.patternError?.let { error ->
+                OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "Pattern failed:\n$error",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(16.dp),
+                    )
+                }
+            }
         } ?: Text(
             text = "Select a photo to preview its metrics.",
             style = MaterialTheme.typography.bodyMedium,

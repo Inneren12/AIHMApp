@@ -27,7 +27,10 @@ fun refinePalette(samples: SampleSet, palette: Palette, passes: Int = REFINE_PAS
         OkLab(palL[c], palA[c], palB[c]).toLinearRgb().toLab()
     }
 
+    var passesExecuted = 0
     repeat(passes) {
+        passesExecuted++
+        qtrace("refinePalette pass=$passesExecuted/$passes n=$n size=$size")
         val nearest = IntArray(n) { i ->
             val si = OkLab(samples.L[i], samples.a[i], samples.b[i])
             var bestC = 0
@@ -83,5 +86,6 @@ fun refinePalette(samples: SampleSet, palette: Palette, passes: Int = REFINE_PAS
         }
     }
 
+    qtrace("refinePalette done passesExecuted=$passesExecuted")
     return Palette(palL, palA, palB, palette.anchorCount)
 }

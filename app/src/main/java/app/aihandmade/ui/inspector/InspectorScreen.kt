@@ -99,7 +99,13 @@ private fun InspectorContent(
             )
         }
 
-        state.preview?.let { preview ->
+        val preview = state.preview
+        if (preview == null) {
+            Text(
+                text = "Select a photo to preview its metrics.",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        } else {
             if (previewBitmap != null) {
                 OutlinedCard(modifier = Modifier.fillMaxWidth()) {
                     Image(
@@ -132,10 +138,17 @@ private fun InspectorContent(
                     )
                 }
             }
-        } ?: Text(
-            text = "Select a photo to preview its metrics.",
-            style = MaterialTheme.typography.bodyMedium,
-        )
+
+            if (state.pattern == null && state.patternError == null && state.errorMessage == null) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                    Text("Quantizing…", style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        }
 
         Spacer(modifier = Modifier.weight(1f, fill = true))
 

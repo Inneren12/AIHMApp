@@ -55,8 +55,10 @@ fun greedyGrow(
 
     val excluded = mutableSetOf<BinIndex>()
     var added = 0
+    var iter = 0   // QuantTrace: total while-loop iterations (adds + bin exclusions)
 
     while (added < kTry) {
+        iter++
         val current = Palette(palL.toFloatArray(), palA.toFloatArray(), palB.toFloatArray(), init.anchorCount)
         val res = residual(samples, current)
 
@@ -66,7 +68,15 @@ fun greedyGrow(
         }
 
         val sel = selectImportantBin(samples, masked)
-        if (sel.impSum <= 0.0) break
+        // QuantTrace: stop conditions are `added < kTry` and `sel.impSum <= 0.0`; log the values being
+        // tested every 50 iterations so an oscillating/never-met condition is visible in logcat.
+        if (iter % 50 == 0) {
+            qtrace("greedyGrow loop iter=$iter added=$added/$kTry excluded=${excluded.size} impSum=${sel.impSum} selBin=${sel.bin}")
+        }
+        if (sel.impSum <= 0.0) {
+            qtrace("greedyGrow break impSum<=0 iter=$iter added=$added excluded=${excluded.size}")
+            break
+        }
 
         val cluster = collectCluster(samples, sel.bin, binRadius)
         if (cluster.size < clusterMin) {
@@ -90,5 +100,6 @@ fun greedyGrow(
         added++
     }
 
+    qtrace("greedyGrow done iters=$iter added=$added finalSize=${palL.size} excluded=${excluded.size}")
     return Palette(palL.toFloatArray(), palA.toFloatArray(), palB.toFloatArray(), init.anchorCount)
 }

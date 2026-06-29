@@ -1,5 +1,6 @@
 package app.aihandmade.core.quant
 
+import app.aihandmade.core.color.OkLabPlanes
 import app.aihandmade.core.color.toOkLabPlanes
 
 /** Everything the chart, floss list and export need from one photo. The cross-module handoff object. */
@@ -68,4 +69,46 @@ fun buildPattern(pixels: IntArray, width: Int, height: Int, catalog: List<DmcThr
     for (idx in indexGrid) counts[idx]++
 
     return PatternResult(width, height, palette, indexGrid, matches, symbols, counts)
+}
+
+/**
+ * Overload that accepts pre-converted [OkLabPlanes], eliminating the redundant ARGB→OKLab pass
+ * that would occur when calling the [IntArray] overload after already holding planes. All
+ * downstream stages (sampling, dithering, DMC matching) are identical.
+ */
+fun buildPattern(image: OkLabPlanes, catalog: List<DmcThread> = DMC_CATALOG): PatternResult {
+    require(image.width >= 1 && image.height >= 1) { "image must be non-empty" }
+
+    val size = image.size
+
+    val samples = samplePixels(image, targetSamples = size)
+    val planes = image
+
+    val kCap = minOf(K_MAX_AUTO, SYMBOL_POOL.size)
+
+    val p0 = initPalette(samples)
+    val grown = greedyGrow(samples, p0, kTry = (kCap - p0.size).coerceAtLeast(0))
+    val refined = refinePalette(samples, grown)
+
+    val k =
+        if (refined.size <= K0_TARGET) {
+            refined.size
+        } else {
+            selectK(samples, refined, k0 = K0_TARGET).kStar.coerceIn(1, refined.size)
+        }
+
+    val palette = Palette(
+        refined.L.copyOf(k), refined.a.copyOf(k), refined.b.copyOf(k),
+        refined.anchorCount.coerceAtMost(k),
+    )
+    require(palette.size <= SYMBOL_POOL.size) { "palette larger than symbol pool" }
+
+    val indexGrid = ditherFloydSteinberg(planes, palette)
+    val matches = matchPaletteToDmc(palette, catalog)
+    val symbols = assignSymbols(palette)
+
+    val counts = IntArray(palette.size)
+    for (idx in indexGrid) counts[idx]++
+
+    return PatternResult(image.width, image.height, palette, indexGrid, matches, symbols, counts)
 }

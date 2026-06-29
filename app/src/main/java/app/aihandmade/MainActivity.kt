@@ -9,12 +9,18 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.activity.viewModels
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.compose.rememberNavController
 import app.aihandmade.navigation.AiHandMadeNavHost
 import app.aihandmade.ui.inspector.PipelineViewModel
 
 class MainActivity : ComponentActivity() {
-    private val pipelineViewModel: PipelineViewModel by viewModels()
+    private val pipelineViewModel: PipelineViewModel by viewModels {
+        viewModelFactory {
+            initializer { PipelineViewModel(application) }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

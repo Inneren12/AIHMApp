@@ -51,7 +51,12 @@ fun buildPattern(pixels: IntArray, width: Int, height: Int, catalog: List<DmcThr
     val samples = samplePixels(pixels, width, height, targetSamples = size)
     qtrace("samplePixels end sampleCount=${samples.size} elapsedMs=${ms(t)}")
 
+    // Untimed/unnamed before: this walks and allocates OKLab planes for every pixel (full 12MP),
+    // so a stall here would otherwise leave a silent gap between samplePixels and initPalette.
+    t = System.nanoTime()
+    qtrace("toOkLabPlanes start pixels=$size")
     val planes = pixels.toOkLabPlanes(width, height)
+    qtrace("toOkLabPlanes end elapsedMs=${ms(t)}")
 
     // Auto-K can never outgrow the chart-glyph pool, or assignSymbols would have nothing to hand out.
     val kCap = minOf(K_MAX_AUTO, SYMBOL_POOL.size)

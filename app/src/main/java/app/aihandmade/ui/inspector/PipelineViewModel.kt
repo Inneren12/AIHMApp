@@ -63,6 +63,8 @@ class PipelineViewModel(
                         ),
                         errorMessage = null,
                     )
+                    val pattern = runCatching { quantizeArtifactToPattern(artifactPath) }.getOrNull()
+                    _uiState.value = _uiState.value.copy(pattern = pattern)
                 }
             } catch (throwable: Throwable) {
                 _uiState.value = ImportUiState(
@@ -101,6 +103,7 @@ data class ImportUiState(
     val isLoading: Boolean = false,
     val preview: ImportPreview? = null,
     val errorMessage: String? = null,
+    val pattern: PatternDebug? = null,
 )
 
 fun interface ImportExecutor {

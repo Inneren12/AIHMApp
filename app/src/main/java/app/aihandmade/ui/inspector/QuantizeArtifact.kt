@@ -16,8 +16,10 @@ private const val ANALYZE_PREVIEW_LONG_SIDE = 512
 
 /**
  * Decode the imported artifact and run the real pipeline: analyze → DecisionEngine → prescale →
- * downscale to stitch dims → buildPattern. Heavy (prescale runs on the full source): call off the main
- * thread. Returns null if the artifact can't be decoded.
+ * downscale to stitch dims → buildPattern. Prescale runs on a bounded debug-resolution source
+ * (max(512, targetLongSide*3)) to avoid OOM in the inspector; the full source is never passed to
+ * the PHOTO bilateral/unsharp path. Call off the main thread.
+ * Returns null if the artifact can't be decoded.
  */
 fun quantizeArtifactToPattern(artifactPath: String): PatternDebug? {
     val bmp = BitmapFactory.decodeFile(artifactPath) ?: return null
@@ -54,8 +56,15 @@ fun quantizeArtifactToPattern(artifactPath: String): PatternDebug? {
         DecisionInput(sourceWidthPx = srcW, sourceHeightPx = srcH),
     )
 
-    // 3) prep on the full source (masks = null), then guarantee stitch dims (no-op for DISCRETE/PIXEL).
-    val prepped = prescale(srcImg, plan, masks = null)
+    // 3) Bound the prescale input to avoid inspector OOM on full-resolution phone photos.
+    //    PHOTO bilateral/unsharp allocates multiple width*height buffers; cap at prepLongSide.
+    val prepLongSide = maxOf(
+        ANALYZE_PREVIEW_LONG_SIDE,
+        maxOf(plan.targetWidthStitches, plan.targetHeightStitches) * 3,
+    )
+    val (prepW, prepH) = previewDims(srcW, srcH, prepLongSide)
+    val prepSrc = if (prepW == srcW && prepH == srcH) srcImg else scaleBox(srcImg, prepW, prepH)
+    val prepped = prescale(prepSrc, plan, masks = null)
     val stitched = scaleBox(prepped, plan.targetWidthStitches, plan.targetHeightStitches)
 
     // 4) quantize the stitch-dim image via the OkLabPlanes path (no redundant ARGB→OKLab pass).

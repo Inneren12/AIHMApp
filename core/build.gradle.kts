@@ -3,7 +3,7 @@ plugins {
 }
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(17)
 
     sourceSets {
         val test by getting {

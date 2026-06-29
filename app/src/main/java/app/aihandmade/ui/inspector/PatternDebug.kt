@@ -5,6 +5,8 @@ data class PatternDebug(
     val widthStitches: Int,
     val heightStitches: Int,
     val colourCount: Int,
+    val sceneType: String,
+    val pipeline: String,
     val swatches: List<Swatch>,
 ) {
     data class Swatch(val argb: Int, val code: String, val name: String, val count: Int)

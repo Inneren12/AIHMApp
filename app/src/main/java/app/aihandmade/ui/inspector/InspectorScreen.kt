@@ -180,6 +180,8 @@ private fun PatternSection(pattern: PatternDebug) {
             Text("Pattern (debug)", style = MaterialTheme.typography.titleMedium)
             MetricRow("Stitches", "${pattern.widthStitches} × ${pattern.heightStitches}")
             MetricRow("Colours", "${pattern.colourCount} DMC")
+            MetricRow("Scene", pattern.sceneType)
+            MetricRow("Branch", pattern.pipeline)
             Row(
                 modifier = Modifier.horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -209,6 +211,8 @@ private fun PatternSectionPreview() {
             widthStitches = 140,
             heightStitches = 98,
             colourCount = 3,
+            sceneType = "PHOTO",
+            pipeline = "PHOTO_PIPE",
             swatches = listOf(
                 PatternDebug.Swatch(0xFF1C3A2E.toInt(), "500", "Blue Green VY DK", 4200),
                 PatternDebug.Swatch(0xFFE8C8A0.toInt(), "3774", "Desert Sand MD", 3100),

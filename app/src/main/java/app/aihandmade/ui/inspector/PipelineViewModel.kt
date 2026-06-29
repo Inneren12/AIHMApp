@@ -72,7 +72,14 @@ class PipelineViewModel(
                     }
                     _uiState.value = patternResult.fold(
                         onSuccess = { result ->
-                            _uiState.value.copy(pattern = result, patternError = null)
+                            if (result != null) {
+                                _uiState.value.copy(pattern = result, patternError = null)
+                            } else {
+                                _uiState.value.copy(
+                                    pattern = null,
+                                    patternError = "Artifact could not be decoded (decodeFile returned null): $artifactPath",
+                                )
+                            }
                         },
                         onFailure = { t ->
                             Log.e(TAG, "pattern pipeline failed", t)

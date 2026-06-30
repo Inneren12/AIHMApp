@@ -36,6 +36,7 @@ private val DMC_THREAD_LABS: List<Lab> = DMC_THREAD_REFS.map { labOf(it.argb) }
 
 /** 6 nearest DMC threads to [argb] by CIEDE2000, excluding [excludeCode], ascending. */
 fun nearestThreads(argb: Int, excludeCode: String, n: Int = 6): List<ThreadCandidate> {
+    require(n >= 0) { "n must be non-negative" }
     val queryLab = labOf(argb)
     val out = ArrayList<ThreadCandidate>(DMC_THREAD_REFS.size)
     for (i in DMC_THREAD_REFS.indices) {
@@ -49,6 +50,7 @@ fun nearestThreads(argb: Int, excludeCode: String, n: Int = 6): List<ThreadCandi
 
 /** Catalog search by code or name (case-insensitive substring); first [limit] of all when blank. */
 fun searchThreads(query: String, limit: Int = 80): List<ThreadRef> {
+    require(limit >= 0) { "limit must be non-negative" }
     val q = query.trim().lowercase()
     if (q.isEmpty()) return DMC_THREAD_REFS.take(limit)
     val out = ArrayList<ThreadRef>(limit)

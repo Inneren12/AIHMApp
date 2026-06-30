@@ -24,6 +24,8 @@ fun residual(samples: SampleSet, palette: Palette): Residual {
     val importance = DoubleArray(n)
 
     for (i in 0 until n) {
+        // QuantTrace: data-dependent bound `i < n`; log every 1000 so a stuck scan is visible.
+        if (i % 1000 == 0) qtrace("residual inner i=$i n=$n paletteSize=${palette.size}")
         val si = OkLab(samples.L[i], samples.a[i], samples.b[i])
         var minSq = Float.POSITIVE_INFINITY
         for (c in 0 until palette.size) {

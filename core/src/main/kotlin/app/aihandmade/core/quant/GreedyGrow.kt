@@ -59,45 +59,60 @@ fun greedyGrow(
 
     while (added < kTry) {
         iter++
+        // QuantTrace: fire EVERY iteration at the TOP of the body (before any helper call) so we can
+        // see how far the outer loop actually gets. If this prints iter=1 and then nothing, the stall
+        // is inside one of the helper calls below (look for the last start/end pair without a match).
+        qtrace("greedyGrow iter=$iter added=$added/$kTry excluded=${excluded.size}")
+
         val current = Palette(palL.toFloatArray(), palA.toFloatArray(), palB.toFloatArray(), init.anchorCount)
+
+        qtrace("greedyGrow residual start")
         val res = residual(samples, current)
+        qtrace("greedyGrow residual end")
 
         val masked = DoubleArray(samples.size) { i ->
             if (binOf(samples.L[i], samples.a[i], samples.b[i]) in excluded) 0.0
             else res.importance[i]
         }
 
+        qtrace("greedyGrow selectBin start")
         val sel = selectImportantBin(samples, masked)
-        // QuantTrace: stop conditions are `added < kTry` and `sel.impSum <= 0.0`; log the values being
-        // tested every 50 iterations so an oscillating/never-met condition is visible in logcat.
-        if (iter % 50 == 0) {
-            qtrace("greedyGrow loop iter=$iter added=$added/$kTry excluded=${excluded.size} impSum=${sel.impSum} selBin=${sel.bin}")
-        }
+        qtrace("greedyGrow selectBin end impSum=${sel.impSum} bin=${sel.bin}")
+
         if (sel.impSum <= 0.0) {
             qtrace("greedyGrow break impSum<=0 iter=$iter added=$added excluded=${excluded.size}")
             break
         }
 
+        qtrace("greedyGrow collectCluster start")
         val cluster = collectCluster(samples, sel.bin, binRadius)
+        qtrace("greedyGrow collectCluster end clusterSize=${cluster.size}")
         if (cluster.size < clusterMin) {
             excluded += sel.bin
             continue
         }
 
+        qtrace("greedyGrow weightedMedoid start clusterSize=${cluster.size}")
         val medoidIdx = weightedMedoid(samples, cluster)
+        qtrace("greedyGrow weightedMedoid end medoidIdx=$medoidIdx")
         val medoidLab = OkLab(samples.L[medoidIdx], samples.a[medoidIdx], samples.b[medoidIdx]).toLinearRgb().toLab()
 
+        qtrace("greedyGrow addGate start")
         // CIEDE2000 add-gate: reject if too close to any existing palette entry
-        if (paletteLab.minOf { deltaE2000(medoidLab, it) } < S_MIN) {
+        val gateClosest = paletteLab.minOf { deltaE2000(medoidLab, it) }
+        qtrace("greedyGrow addGate end closest=$gateClosest sMin=$S_MIN")
+        if (gateClosest < S_MIN) {
             excluded += sel.bin
             continue
         }
 
+        qtrace("greedyGrow insert start")
         palL += samples.L[medoidIdx]
         palA += samples.a[medoidIdx]
         palB += samples.b[medoidIdx]
         paletteLab += medoidLab
         added++
+        qtrace("greedyGrow insert end added=$added paletteSize=${palL.size}")
     }
 
     qtrace("greedyGrow done iters=$iter added=$added finalSize=${palL.size} excluded=${excluded.size}")

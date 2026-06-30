@@ -17,6 +17,8 @@ fun collectCluster(samples: SampleSet, center: BinIndex, binRadius: Int = CLUSTE
     requireValidBinIndex(center)
     val result = mutableListOf<Int>()
     for (i in 0 until samples.size) {
+        // QuantTrace: data-dependent bound `i < samples.size`; log every 1000 inner iterations.
+        if (i % 1000 == 0) qtrace("collectCluster inner i=$i n=${samples.size} found=${result.size}")
         val bi = binOf(samples.L[i], samples.a[i], samples.b[i])
         val chebyshev = maxOf(
             kotlin.math.abs(bi.l - center.l),
@@ -49,7 +51,13 @@ fun weightedMedoid(samples: SampleSet, cluster: IntArray): Int {
     }
     var bestIdx = cluster[0]
     var bestCost = Double.POSITIVE_INFINITY
+    // QuantTrace: this is the O(cluster.size^2) double loop (candidate j x member i). With a large
+    // cluster it can take a very long time even though it terminates. `jSeen` counts the outer
+    // candidate loop (bound `jSeen < cluster.size`); log every 1000 candidates.
+    var jSeen = 0
     for (j in cluster) {
+        if (jSeen % 1000 == 0) qtrace("weightedMedoid inner jSeen=$jSeen clusterSize=${cluster.size} bestCost=$bestCost bestIdx=$bestIdx")
+        jSeen++
         val jLab = OkLab(samples.L[j], samples.a[j], samples.b[j])
         var cost = 0.0
         for (i in cluster) {

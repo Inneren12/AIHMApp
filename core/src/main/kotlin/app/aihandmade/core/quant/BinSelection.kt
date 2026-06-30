@@ -30,6 +30,8 @@ fun selectImportantBin(samples: SampleSet, importance: DoubleArray): BinSelectio
 
     val hist = HashMap<BinIndex, Double>()
     for (i in 0 until samples.size) {
+        // QuantTrace: data-dependent bound `i < samples.size`; log every 1000 inner iterations.
+        if (i % 1000 == 0) qtrace("selectImportantBin inner i=$i n=${samples.size} bins=${hist.size}")
         val bin = binOf(samples.L[i], samples.a[i], samples.b[i])
         hist[bin] = (hist[bin] ?: 0.0) + importance[i]
     }

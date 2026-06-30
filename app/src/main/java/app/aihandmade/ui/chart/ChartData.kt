@@ -11,7 +11,10 @@ class ChartData(
 ) {
     init {
         require(width >= 1 && height >= 1) { "chart must be non-empty" }
-        require(indexGrid.size == width * height) { "indexGrid size must equal width * height" }
+        val sizeLong = width.toLong() * height.toLong()
+        require(sizeLong <= Int.MAX_VALUE) { "chart size too large" }
+        val size = sizeLong.toInt()
+        require(indexGrid.size == size) { "indexGrid size must equal width * height" }
         require(cells.isNotEmpty()) { "cells must not be empty" }
         require(indexGrid.all { it in cells.indices }) { "indexGrid contains invalid cell index" }
     }

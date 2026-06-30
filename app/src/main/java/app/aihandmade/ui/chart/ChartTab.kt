@@ -16,8 +16,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.Text
-import app.aihandmade.ui.inspector.ChartData
-import app.aihandmade.ui.inspector.ChartCell
 import app.aihandmade.ui.theme.AidaColors
 import app.aihandmade.ui.theme.AidaType
 

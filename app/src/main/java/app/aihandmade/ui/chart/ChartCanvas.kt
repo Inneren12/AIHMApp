@@ -17,7 +17,6 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.aihandmade.ui.inspector.ChartData
 import app.aihandmade.ui.theme.AidaColors
 import app.aihandmade.ui.theme.AidaType
 

@@ -38,6 +38,8 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import app.aihandmade.ui.chart.ChartCell
+import app.aihandmade.ui.chart.ChartData
 
 @Composable
 fun InspectorScreen(
@@ -241,7 +243,12 @@ private fun PatternSectionPreview() {
                 PatternDebug.Swatch(0xFFE8C8A0.toInt(), "3774", "Desert Sand MD", 3100),
                 PatternDebug.Swatch(0xFFB04030.toInt(), "919", "Red Copper", 1820),
             ),
-            chart = ChartData(0, 0, IntArray(0), emptyList()),
+            chart = ChartData(
+                width = 1,
+                height = 1,
+                indexGrid = IntArray(1) { 0 },
+                cells = listOf(ChartCell(0xFF1C3A2E.toInt(), "500", "Blue Green VY DK", 'A', 4200)),
+            ),
         ),
     )
 }

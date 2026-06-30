@@ -8,6 +8,8 @@ import app.aihandmade.core.image.RgbaImage
 import app.aihandmade.core.prescale.prescale
 import app.aihandmade.core.prescale.scale.scaleBox
 import app.aihandmade.core.quant.buildPattern
+import app.aihandmade.ui.chart.ChartCell
+import app.aihandmade.ui.chart.ChartData
 
 /** Longest side of the analyze preview. Metrics are calibrated for preview scale; bigger = slower. */
 private const val ANALYZE_PREVIEW_LONG_SIDE = 512

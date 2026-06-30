@@ -18,6 +18,9 @@ object AidaColors {
     val accentTintBorder = Color(0xFFBFD8CF)
     val accentLight = Color(0xFF7FD0B5)  // skeins highlight
 
+    val warning = Color(0xFFB4503C)        // noticeable Δ
+    val warningStrong = Color(0xFF8F3A2A)  // very different Δ
+
     val textHeading = Color(0xFF1F1D18)
     val textStrong = Color(0xFF2B2823)
     val textBody = Color(0xFF5C5648)

@@ -33,6 +33,7 @@ private fun luminance(argb: Int): Float {
 fun ChartCanvas(
     chart: ChartData,
     view: ChartView,
+    overrideArgb: Map<Int, Int> = emptyMap(),
     modifier: Modifier = Modifier,
     cellDp: Dp = 15.dp,
 ) {
@@ -72,14 +73,16 @@ fun ChartCanvas(
 
         for (r in 0 until rows) {
             for (c in 0 until cols) {
-                val cell = chart.cells[chart.indexGrid[r * cols + c]]
+                val idx = chart.indexGrid[r * cols + c]
+                val cell = chart.cells[idx]
+                val argb = overrideArgb[idx] ?: cell.argb
                 val x = padPx + c * cellPx
                 val y = padPx + r * cellPx
                 if (view != ChartView.SYMBOLS) {
-                    drawRect(Color(cell.argb), topLeft = Offset(x, y), size = Size(cellPx, cellPx))
+                    drawRect(Color(argb), topLeft = Offset(x, y), size = Size(cellPx, cellPx))
                 }
                 if (view != ChartView.COLOR) {
-                    val dark = view == ChartView.SYMBOLS || luminance(cell.argb) > 0.55f
+                    val dark = view == ChartView.SYMBOLS || luminance(argb) > 0.55f
                     val layout = glyphLayouts[cell.glyph to dark] ?: glyphLayouts[cell.glyph to true]
                     if (layout != null) {
                         val gx = x + (cellPx - layout.size.width) / 2f

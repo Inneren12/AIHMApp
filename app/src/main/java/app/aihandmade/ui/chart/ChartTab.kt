@@ -22,7 +22,15 @@ import app.aihandmade.ui.theme.AidaType
 @Composable
 fun ChartTab(chart: ChartData, modifier: Modifier = Modifier) {
     var view by remember { mutableStateOf(ChartView.BOTH) }
-    val flossSorted = remember(chart) { chart.cells.sortedByDescending { it.count } }
+    var overrides by remember(chart) { mutableStateOf<Map<Int, ThreadRef>>(emptyMap()) }
+    var swapTarget by remember(chart) { mutableStateOf<Int?>(null) }
+    val effective = remember(chart, overrides) {
+        chart.cells.mapIndexed { i, c ->
+            overrides[i]?.let { o -> c.copy(argb = o.argb, code = o.code, name = o.name) } ?: c
+        }
+    }
+    val overrideArgb = remember(overrides) { overrides.mapValues { it.value.argb } }
+    val flossSorted = remember(effective) { effective.withIndex().sortedByDescending { it.value.count } }
 
     Column(modifier = modifier.fillMaxSize().background(AidaColors.linen).padding(horizontal = 16.dp)) {
         Spacer(Modifier.height(8.dp))
@@ -57,7 +65,7 @@ fun ChartTab(chart: ChartData, modifier: Modifier = Modifier) {
                 .clip(RoundedCornerShape(12.dp)).border(1.dp, AidaColors.border, RoundedCornerShape(12.dp))
                 .background(AidaColors.surface).clipToBounds(),
         ) {
-            ZoomableChart(chart = chart, view = view, modifier = Modifier.fillMaxSize())
+            ZoomableChart(chart = chart, view = view, overrideArgb = overrideArgb, modifier = Modifier.fillMaxSize())
         }
         Text("pinch to zoom · drag to pan · bold lines every 10 stitches",
             style = AidaType.chartCaption, modifier = Modifier.fillMaxWidth().padding(top = 7.dp))
@@ -65,17 +73,30 @@ fun ChartTab(chart: ChartData, modifier: Modifier = Modifier) {
         Text("FLOSS LIST", style = AidaType.groupLabel, modifier = Modifier.padding(top = 16.dp))
         Spacer(Modifier.height(9.dp))
         LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f).heightIn(max = 240.dp)) {
-            items(flossSorted) { c -> FlossRow(c) }
+            items(flossSorted) { iv -> FlossRow(iv.value) { swapTarget = iv.index } }
         }
         Spacer(Modifier.height(8.dp))
+    }
+
+    val target = swapTarget
+    if (target != null) {
+        SwapSheet(
+            current = effective[target],
+            onDismiss = { swapTarget = null },
+            onPick = { ref ->
+                overrides = overrides + (target to ref)
+                swapTarget = null
+            },
+        )
     }
 }
 
 @Composable
-private fun FlossRow(cell: ChartCell) {
+private fun FlossRow(cell: ChartCell, onClick: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp).clip(RoundedCornerShape(10.dp))
-            .background(AidaColors.surface).border(1.dp, AidaColors.border, RoundedCornerShape(10.dp)).padding(horizontal = 11.dp, vertical = 9.dp),
+            .background(AidaColors.surface).border(1.dp, AidaColors.border, RoundedCornerShape(10.dp))
+            .clickable { onClick() }.padding(horizontal = 11.dp, vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(11.dp),
     ) {

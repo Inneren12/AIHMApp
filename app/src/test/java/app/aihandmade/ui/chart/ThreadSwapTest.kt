@@ -24,7 +24,7 @@ class ThreadSwapTest {
         assertTrue(result.isEmpty())
     }
 
-    @Test fun nearestThreads_negativN_throws() {
+    @Test fun nearestThreads_negativeN_throws() {
         try {
             nearestThreads(0xFF_FF0000.toInt(), excludeCode = "321", n = -1)
             throw AssertionError("expected IllegalArgumentException")
@@ -64,7 +64,7 @@ class ThreadSwapTest {
         assertTrue(result.isEmpty())
     }
 
-    @Test fun searchThreads_negativLimit_throws() {
+    @Test fun searchThreads_negativeLimit_throws() {
         try {
             searchThreads("", limit = -1)
             throw AssertionError("expected IllegalArgumentException")
@@ -79,9 +79,10 @@ class ThreadSwapTest {
     }
 
     @Test fun searchThreads_byCodeCaseInsensitive() {
-        val lower = searchThreads("321", limit = 80)
-        val upper = searchThreads("321", limit = 80)
-        assertTrue(lower.any { it.code == "321" })
+        // B5200 is the only alphanumeric DMC code; lower vs upper must return the same result.
+        val lower = searchThreads("b5200", limit = 80)
+        val upper = searchThreads("B5200", limit = 80)
+        assertTrue(lower.any { it.code == "B5200" })
         assertEquals(lower.map { it.code }, upper.map { it.code })
     }
 

@@ -27,7 +27,7 @@ fun AidaShell(viewModel: PipelineViewModel) {
     val state by viewModel.uiState.collectAsState()
     var tab by remember { mutableStateOf(Tab.INSPECTOR) }  // start on Inspector so a photo can be loaded
 
-    Column(Modifier.fillMaxSize().background(AidaColors.linen)) {
+    Column(Modifier.fillMaxSize().systemBarsPadding().background(AidaColors.linen)) {
         // header
         Row(
             Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, top = 12.dp, bottom = 10.dp),

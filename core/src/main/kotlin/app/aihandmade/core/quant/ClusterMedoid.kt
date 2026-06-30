@@ -5,6 +5,11 @@ import app.aihandmade.core.color.deltaOk
 
 const val CLUSTER_BIN_RADIUS = 2
 
+/** Above this cluster size, weightedMedoid runs over a uniform random subset (size MEDOID_EXACT_CAP)
+ *  instead of every member, bounding its O(n^2) cost. At/below it the medoid is exact. ~2048^2 ~= 4M
+ *  ops is sub-second. */
+const val MEDOID_EXACT_CAP = 2048
+
 private fun requireValidBinIndex(bin: BinIndex) {
     require(bin.l in 0 until B_L && bin.a in 0 until B_A && bin.b in 0 until B_B) {
         "bin index out of range"
@@ -17,8 +22,6 @@ fun collectCluster(samples: SampleSet, center: BinIndex, binRadius: Int = CLUSTE
     requireValidBinIndex(center)
     val result = mutableListOf<Int>()
     for (i in 0 until samples.size) {
-        // QuantTrace: data-dependent bound `i < samples.size`; log every 1000 inner iterations.
-        if (i % 1000 == 0) qtrace("collectCluster inner i=$i n=${samples.size} found=${result.size}")
         val bi = binOf(samples.L[i], samples.a[i], samples.b[i])
         val chebyshev = maxOf(
             kotlin.math.abs(bi.l - center.l),
@@ -28,6 +31,27 @@ fun collectCluster(samples: SampleSet, center: BinIndex, binRadius: Int = CLUSTE
         if (chebyshev <= binRadius) result.add(i)
     }
     return result.toIntArray()
+}
+
+/**
+ * Uniform random subset of [cluster] of [cap] indices, ascending. Deterministic: the same fixed seed
+ * the sampler uses (DEFAULT_SEED), so repeated calls are identical. Partial Fisher-Yates picks `cap`
+ * distinct positions; since `cluster` is strictly ascending and distinct, the mapped, sorted result is
+ * a strictly-ascending distinct subset. Used only to bound the medoid's O(n^2) cost above the cap; at
+ * or below the cap the full cluster is returned (same reference) and the medoid is exact.
+ */
+private fun subsampleAscending(cluster: IntArray, cap: Int, seed: Long = DEFAULT_SEED): IntArray {
+    val n = cluster.size
+    if (n <= cap) return cluster
+    val pos = IntArray(n) { it }
+    val rng = kotlin.random.Random(seed)
+    for (i in 0 until cap) {
+        val j = i + rng.nextInt(n - i)
+        val tmp = pos[i]; pos[i] = pos[j]; pos[j] = tmp
+    }
+    val picked = IntArray(cap) { cluster[pos[it]] }
+    picked.sort()
+    return picked
 }
 
 /**
@@ -49,18 +73,17 @@ fun weightedMedoid(samples: SampleSet, cluster: IntArray): Int {
     for (k in 1 until cluster.size) {
         require(cluster[k - 1] < cluster[k]) { "cluster indices must be strictly ascending" }
     }
-    var bestIdx = cluster[0]
+
+    // Bound the O(n^2) medoid scan: exact for clusters up to the cap, uniform subset above it.
+    // Below the cap `scan === cluster`, so the loop below is identical to the un-capped version.
+    val scan = subsampleAscending(cluster, MEDOID_EXACT_CAP)
+
+    var bestIdx = scan[0]
     var bestCost = Double.POSITIVE_INFINITY
-    // QuantTrace: this is the O(cluster.size^2) double loop (candidate j x member i). With a large
-    // cluster it can take a very long time even though it terminates. `jSeen` counts the outer
-    // candidate loop (bound `jSeen < cluster.size`); log every 1000 candidates.
-    var jSeen = 0
-    for (j in cluster) {
-        if (jSeen % 1000 == 0) qtrace("weightedMedoid inner jSeen=$jSeen clusterSize=${cluster.size} bestCost=$bestCost bestIdx=$bestIdx")
-        jSeen++
+    for (j in scan) {
         val jLab = OkLab(samples.L[j], samples.a[j], samples.b[j])
         var cost = 0.0
-        for (i in cluster) {
+        for (i in scan) {
             cost += samples.weight[i].toDouble() *
                 deltaOk(jLab, OkLab(samples.L[i], samples.a[i], samples.b[i])).toDouble()
         }

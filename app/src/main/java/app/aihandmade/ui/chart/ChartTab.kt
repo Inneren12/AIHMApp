@@ -53,7 +53,7 @@ fun ChartTab(chart: ChartData, modifier: Modifier = Modifier) {
 
         // chart viewport: whole grid fits by default; pinch to zoom, drag to pan. Owns its gestures.
         Box(
-            modifier = Modifier.fillMaxWidth().weight(1f).padding(top = 14.dp)
+            modifier = Modifier.fillMaxWidth().weight(1f).heightIn(min = 220.dp).padding(top = 14.dp)
                 .clip(RoundedCornerShape(12.dp)).border(1.dp, AidaColors.border, RoundedCornerShape(12.dp))
                 .background(AidaColors.surface).clipToBounds(),
         ) {
@@ -64,7 +64,7 @@ fun ChartTab(chart: ChartData, modifier: Modifier = Modifier) {
 
         Text("FLOSS LIST", style = AidaType.groupLabel, modifier = Modifier.padding(top = 16.dp))
         Spacer(Modifier.height(9.dp))
-        LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 240.dp)) {
+        LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f).heightIn(max = 240.dp)) {
             items(flossSorted) { c -> FlossRow(c) }
         }
         Spacer(Modifier.height(8.dp))

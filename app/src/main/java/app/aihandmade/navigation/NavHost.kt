@@ -5,11 +5,11 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import app.aihandmade.ui.inspector.InspectorScreen
+import app.aihandmade.ui.editor.AidaShell
 import app.aihandmade.ui.inspector.PipelineViewModel
 
 object Destinations {
-    const val INSPECTOR = "inspector"
+    const val EDITOR = "editor"
 }
 
 @Composable
@@ -20,11 +20,11 @@ fun AiHandMadeNavHost(
 ) {
     NavHost(
         navController = navController,
-        startDestination = Destinations.INSPECTOR,
+        startDestination = Destinations.EDITOR,
         modifier = modifier,
     ) {
-        composable(Destinations.INSPECTOR) {
-            InspectorScreen(viewModel = pipelineViewModel)
+        composable(Destinations.EDITOR) {
+            AidaShell(viewModel = pipelineViewModel)
         }
     }
 }

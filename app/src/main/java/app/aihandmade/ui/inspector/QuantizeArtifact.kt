@@ -8,6 +8,8 @@ import app.aihandmade.core.image.RgbaImage
 import app.aihandmade.core.prescale.prescale
 import app.aihandmade.core.prescale.scale.scaleBox
 import app.aihandmade.core.quant.buildPattern
+import app.aihandmade.ui.chart.ChartCell
+import app.aihandmade.ui.chart.ChartData
 
 /** Longest side of the analyze preview. Metrics are calibrated for preview scale; bigger = slower. */
 private const val ANALYZE_PREVIEW_LONG_SIDE = 512
@@ -77,6 +79,23 @@ fun quantizeArtifactToPattern(artifactPath: String): PatternDebug? {
         )
     }.sortedByDescending { it.count }
 
+    val cells = (0 until result.palette.size).map { i ->
+        val t = result.matches[i].thread
+        ChartCell(
+            argb = 0xFF000000.toInt() or t.rgb,
+            code = t.code,
+            name = t.name,
+            glyph = result.symbols[i],
+            count = result.counts[i],
+        )
+    }
+    val chartData = ChartData(
+        width = result.width,
+        height = result.height,
+        indexGrid = result.indexGrid,
+        cells = cells,
+    )
+
     return PatternDebug(
         widthStitches = result.width,
         heightStitches = result.height,
@@ -84,6 +103,7 @@ fun quantizeArtifactToPattern(artifactPath: String): PatternDebug? {
         sceneType = plan.sceneType.name,
         pipeline = plan.pipeline.name,
         swatches = swatches,
+        chart = chartData,
     )
 }
 

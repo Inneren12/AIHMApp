@@ -241,6 +241,7 @@ private fun PatternSectionPreview() {
                 PatternDebug.Swatch(0xFFE8C8A0.toInt(), "3774", "Desert Sand MD", 3100),
                 PatternDebug.Swatch(0xFFB04030.toInt(), "919", "Red Copper", 1820),
             ),
+            chart = ChartData(0, 0, IntArray(0), emptyList()),
         ),
     )
 }

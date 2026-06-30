@@ -3,15 +3,15 @@ package app.aihandmade.ui.chart
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -22,7 +22,10 @@ import app.aihandmade.ui.theme.AidaType
 @Composable
 fun ChartTab(chart: ChartData, modifier: Modifier = Modifier) {
     var view by remember { mutableStateOf(ChartView.BOTH) }
-    Column(modifier = modifier.fillMaxSize().background(AidaColors.linen).verticalScroll(rememberScrollState()).padding(16.dp)) {
+    val flossSorted = remember(chart) { chart.cells.sortedByDescending { it.count } }
+
+    Column(modifier = modifier.fillMaxSize().background(AidaColors.linen).padding(horizontal = 16.dp)) {
+        Spacer(Modifier.height(8.dp))
         Text("Pattern chart", style = AidaType.sectionTitle)
         Text("${chart.width} × ${chart.height} stitches", style = AidaType.monoCaption)
 
@@ -48,20 +51,23 @@ fun ChartTab(chart: ChartData, modifier: Modifier = Modifier) {
             }
         }
 
-        // chart in a bounded pan box
+        // chart viewport: whole grid fits by default; pinch to zoom, drag to pan. Owns its gestures.
         Box(
-            modifier = Modifier.fillMaxWidth().padding(top = 14.dp).heightIn(max = 420.dp)
+            modifier = Modifier.fillMaxWidth().weight(1f).padding(top = 14.dp)
                 .clip(RoundedCornerShape(12.dp)).border(1.dp, AidaColors.border, RoundedCornerShape(12.dp))
-                .background(AidaColors.surface)
-                .horizontalScroll(rememberScrollState()).verticalScroll(rememberScrollState()),
+                .background(AidaColors.surface).clipToBounds(),
         ) {
-            ChartCanvas(chart = chart, view = view)
+            ZoomableChart(chart = chart, view = view, modifier = Modifier.fillMaxSize())
         }
-        Text("scroll to pan · bold lines every 10 stitches", style = AidaType.chartCaption, modifier = Modifier.fillMaxWidth().padding(top = 7.dp))
+        Text("pinch to zoom · drag to pan · bold lines every 10 stitches",
+            style = AidaType.chartCaption, modifier = Modifier.fillMaxWidth().padding(top = 7.dp))
 
-        Text("FLOSS LIST", style = AidaType.groupLabel, modifier = Modifier.padding(top = 22.dp))
+        Text("FLOSS LIST", style = AidaType.groupLabel, modifier = Modifier.padding(top = 16.dp))
         Spacer(Modifier.height(9.dp))
-        chart.cells.sortedByDescending { it.count }.forEach { c -> FlossRow(c) }
+        LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 240.dp)) {
+            items(flossSorted) { c -> FlossRow(c) }
+        }
+        Spacer(Modifier.height(8.dp))
     }
 }
 

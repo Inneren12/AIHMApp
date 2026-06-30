@@ -99,11 +99,6 @@ fun selectK(samples: SampleSet, palette: Palette, k0: Int, kTry: Int = palette.s
         else -> rows.last().k to "k_max"
     }
 
-    // QuantTrace: the candidate K scan is the bounded range [k0..kTry]; log every candidate tried
-    // (its de95) and the chosen kStar so the auto-K decision is visible in logcat.
-    qtrace("selectK candidates k0=$k0 kTry=$kTry tried=${rows.joinToString(",") { "${it.k}:de95=${"%.2f".format(it.de95)}" }}")
-    qtrace("selectK chosen kStar=$kStar reason=$reason")
-
     return KneedleResult(rows, kStar, reason)
 }
 

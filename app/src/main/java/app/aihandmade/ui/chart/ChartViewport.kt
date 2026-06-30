@@ -34,7 +34,7 @@ private fun clampOffset(
 }
 
 @Composable
-fun ZoomableChart(chart: ChartData, view: ChartView, modifier: Modifier = Modifier) {
+fun ZoomableChart(chart: ChartData, view: ChartView, overrideArgb: Map<Int, Int> = emptyMap(), modifier: Modifier = Modifier) {
     val density = LocalDensity.current
     val cols = chart.width
     val rows = chart.height
@@ -71,6 +71,7 @@ fun ZoomableChart(chart: ChartData, view: ChartView, modifier: Modifier = Modifi
             ChartCanvas(
                 chart = chart,
                 view = view,
+                overrideArgb = overrideArgb,
                 cellDp = REF_CELL,
                 modifier = Modifier.graphicsLayer {
                     scaleX = scale
